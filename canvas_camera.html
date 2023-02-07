@@ -28,6 +28,7 @@
             // Attach the camera stream to a video element
             const video = document.createElement('video');
             video.srcObject = stream;
+            video.setAttribute("playsinline", true);
             video.play();
 
             // Draw the camera stream onto the canvas
