@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      #location {
+        font-size: large;
+        text-align: center;
+        margin-top: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="location"></div>
+    <script>
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          document.getElementById("location").innerHTML = `Latitude: ${latitude}<br>Longitude: ${longitude}`;
+        });
+      } else {
+        document.getElementById("location").innerHTML = "Geolocation is not supported by this browser.";
+      }
+    </script>
+  </body>
+</html>

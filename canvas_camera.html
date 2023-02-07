@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="camera-stream"></canvas>
+    <script>
+        // Get the canvas element
+        const canvas = document.getElementById('camera-stream');
+
+        // Get the canvas context
+        const context = canvas.getContext('2d');
+
+        // Set the canvas dimensions to match the camera stream
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Get the camera stream
+        navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+            // Attach the camera stream to a video element
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+
+            // Draw the camera stream onto the canvas
+            setInterval(function() {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            }, 16);
+        })
+        .catch(function(error) {
+            console.error('Error accessing camera:', error);
+        });
+    </script>
+  </body>
+</html>
