@@ -1,57 +1,52 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.122.0/build/three.js"></script>
-    <style>
-      body { margin: 0; }
-      canvas { width: 100vw; height: 100vh; display: block; }
-    </style>
-  </head>
-  <body>
-    <canvas id="canvas"></canvas>
-    <script>
-      // Get the canvas element
-      const canvas = document.getElementById('canvas');
+<head>
+  <style>
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.120.0/build/three.js"></script>
+</head>
+<body>
+  <canvas id="camera-stream"></canvas>
+  <div id="coords">Latitude: <span id="lat"></span>, Longitude: <span id="long"></span></div>
+  <script>
+    // Get the canvas element
+    const canvas = document.getElementById('camera-stream');
 
-      // Create a Three.js renderer and attach it to the canvas
-      const renderer = new THREE.WebGLRenderer({ canvas });
+    // Get the canvas context
+    const context = canvas.getContext('2d');
 
-      // Create a Three.js scene
-      const scene = new THREE.Scene();
+    // Set the canvas dimensions to match the camera stream
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-      // Create a camera and add it to the scene
-      const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-      scene.add(camera);
+    // Get the camera stream
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(function(stream) {
+        // Attach the camera stream to a video element
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
 
-      // Create a light and add it to the scene
-      const light = new THREE.PointLight(0xffffff, 1, 100);
-      light.position.set(0, 0, 50);
-      scene.add(light);
-
-      // Create a spinning cube and add it to the scene
-      const cube = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(10, 10, 10),
-        new THREE.MeshLambertMaterial({ color: 0xff0000 })
-      );
-      cube.position.set(0, 0, 0);
-      scene.add(cube);
-
-      // Get the device's orientation
-      window.addEventListener('deviceorientation', function(event) {
-        const heading = event.alpha;
-        const pitch = event.beta;
-        const roll = event.gamma;
-
-        // Update the cube's position based on the device's heading
-        cube.rotation.y = -heading * Math.PI / 180;
+        // Draw the camera stream onto the canvas
+        setInterval(function() {
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        }, 16);
+      })
+      .catch(function(error) {
+        console.error('Error accessing camera:', error);
       });
 
-      // Render the scene
-      function render() {
-        renderer.render(scene, camera);
-        requestAnimationFrame(render);
-      }
-      requestAnimationFrame(render);
-    </script>
-  </body>
+    // Get user's GPS coordinates
+    navigator.geolocation.getCurrentPosition(function(position) {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+      document.getElementById("lat").innerHTML = latitude;
+      document.getElementById("long").innerHTML = longitude;
+    });
+  </script>
+</body>
 </html>
