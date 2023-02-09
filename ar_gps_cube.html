@@ -9,10 +9,10 @@
   </head>
   <body>
     <div id="coords">Latitude: <span id="lat"></span>, Longitude: <span id="long"></span></div>
-    <canvas id="canvas"></canvas>
+    <canvas id="camera-stream"></canvas>
     <script>
       // Get the canvas element
-      const mainCanvas = document.getElementById('canvas');
+      const mainCanvas = document.getElementById('camera-stream');
 
       // Create a Three.js renderer and attach it to the canvas
       const renderer = new THREE.WebGLRenderer({ mainCanvas });
