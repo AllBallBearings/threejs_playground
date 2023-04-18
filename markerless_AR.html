@@ -1,69 +1,63 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8">
-    <title>Location-based AR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AR.js - Location-based example</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@glenco/arjs/dist/arjs.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      #info {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: white;
+        font-family: sans-serif;
+        font-size: 16px;
+        font-weight: bold;
+        z-index: 1;
+      }
+      .arjs-loader {
+        display: none;
+      }
+      .arjs-video {
+        width: 100%;
+        height: 100%;
+      }
+      .arjs-video-container {
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 0;
+      }
+      .arjs-video-container video {
+        object-fit: cover;
+      }
+    </style>
   </head>
-  <body style="margin: 0;">
-    <a-scene vr-mode-ui="enabled: false" arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
-      <a-assets>
-        <a-asset-item id="cube-model" src="https://cdn.glitch.com/0bf9f3ba-bf8b-4706-903d-f53d212d2f26%2Fcube.gltf?v=1623926359262"></a-asset-item>
-      </a-assets>
-
-      <a-marker-camera type="barcode">
-        <a-entity position="0 0 -10" scale="0.1 0.1 0.1" gltf-model="#cube-model"></a-entity>
-      </a-marker-camera>
-
-      <a-entity id="user-position" gps-camera rotation-reader></a-entity>
-
-      <a-entity id="cube" gltf-model="#cube-model" scale="0.1 0.1 0.1" position="0 0 -5"></a-entity>
-
-      <script>
-        // Get the user's position using the browser's geolocation API
-        navigator.geolocation.getCurrentPosition(position => {
-          const latitude = position.coords.latitude;
-          const longitude = position.coords.longitude;
-
-          // Set the user's position on the GPS camera entity
-          const userPosition = document.querySelector('#user-position');
-          userPosition.setAttribute('gps-camera', `latitude: ${latitude}; longitude: ${longitude}`);
-
-          // Calculate the position of the cube relative to the user's position
-          const cube = document.querySelector('#cube');
-          const distance = 5; // 5 feet from the user
-          const bearing = 0; // straight ahead
-          const cubePosition = calculatePosition(latitude, longitude, distance, bearing);
-          cube.setAttribute('gps-entity-place', `latitude: ${cubePosition.latitude}; longitude: ${cubePosition.longitude}; altitude: 0;`);
-        });
-
-        function calculatePosition(latitude, longitude, distance, bearing) {
-          const radius = 6371e3; // meters
-          const distanceRadians = distance / radius;
-          const bearingRadians = toRadians(bearing);
-          const latitudeRadians = toRadians(latitude);
-          const longitudeRadians = toRadians(longitude);
-
-          const newLatitude = Math.asin(Math.sin(latitudeRadians) * Math.cos(distanceRadians) +
-              Math.cos(latitudeRadians) * Math.sin(distanceRadians) * Math.cos(bearingRadians));
-          const newLongitude = longitudeRadians + Math.atan2(Math.sin(bearingRadians) * Math.sin(distanceRadians) * Math.cos(latitudeRadians),
-              Math.cos(distanceRadians) - Math.sin(latitudeRadians) * Math.sin(newLatitude));
-
-          return {
-            latitude: toDegrees(newLatitude),
-            longitude: toDegrees(newLongitude)
-          };
-        }
-
-        function toRadians(degrees) {
-          return degrees * (Math.PI / 180);
-        }
-
-        function toDegrees(radians) {
-          return radians * (180 / Math.PI);
-        }
-      </script>
+  <body>
+    <div id="info">Loading...</div>
+    <a-scene vr-mode-ui="enabled: false" embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+      <a-marker type="geo" latitude="37.7749" longitude="-122.4194" distance="10" hit-testing-enabled="true">
+        <a-box position="0 0.5 0" material="src: https://cdn.glitch.com/ea614425-98b5-477c-8c50-200cc530abef%2Fcrate.gif?v=1636532168867;"></a-box>
+      </a-marker>
+      <a-entity camera></a-entity>
     </a-scene>
+    <script>
+      const infoEl = document.getElementById('info');
+      const sceneEl = document.querySelector('a-scene');
+
+      sceneEl.addEventListener('gps-camera-update-position', function(ev) {
+        infoEl.innerText = `Latitude: ${ev.detail.position.latitude.toFixed(6)}, Longitude: ${ev.detail.position.longitude.toFixed(6)}, Altitude: ${ev.detail.position.altitude.toFixed(2)}`;
+      });
+
+      sceneEl.addEventListener('loaded', function() {
+        infoEl.innerText = 'Point your camera at the location to place the cube.';
+      });
+    </script>
   </body>
 </html>
