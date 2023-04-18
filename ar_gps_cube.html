@@ -1,68 +1,77 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.122.0/build/three.js"></script>
-    <style>
-      body { margin: 0; }
-      canvas { width: 100vw; height: 100vh; display: block; }
-    </style>
-  </head>
-  <body>
-    <canvas id="canvas"></canvas>
-    <script>
-      // Get the canvas element
-      const canvas = document.getElementById('canvas');
+<head>
+  <meta charset="UTF-8">
+  <title>AR Cube Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas });
+    renderer.setSize(window.innerWidth, window.innerHeight);
 
-      // Create a Three.js renderer and attach it to the canvas
-      const renderer = new THREE.WebGLRenderer({ canvas });
+    const scene = new THREE.Scene();
 
-      // Create a Three.js scene
-      const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 0);
 
-      // Create a camera and add it to the scene
-      const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+    const light = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(light);
 
-      // Set up the camera's position and orientation
-      camera.position.set(0, 0, 0);
-      camera.lookAt(scene.position);
+    const cube = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    );
+    cube.position.set(0, 0, -5);
 
-      // Create a light and add it to the scene
-      const light = new THREE.PointLight(0xffffff, 1, 100);
-      light.position.set(0, 0, 50);
-      scene.add(light);
+    const controls = new THREE.DeviceOrientationControls(camera, true);
 
-      // Create a spinning cube and add it to the scene
-      const cube = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(10, 10, 10),
-        new THREE.MeshLambertMaterial({ color: 0xff0000 })
-      );
-      cube.position.set(0, 0, -60);
-      scene.add(cube);
+    function render() {
+      controls.update();
+      cube.rotation.y = -camera.rotation.y;
+      renderer.render(scene, camera);
+      requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
 
-      // Create a Three.js texture to hold the camera view
-      const videoTexture = new THREE.VideoTexture(document.getElementById('video'));
+    const video = document.createElement('video');
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
 
-      // Create a Three.js material with the camera view as its texture
-      const material = new THREE.MeshBasicMaterial({ map: videoTexture });
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "environment",
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30, max: 60 },
+      },
+    }).then((stream) => {
+      video.srcObject = stream;
+      video.play();
+    }).catch((error) => {
+      console.error('Error accessing media devices.', error);
+    });
 
-      // Create a plane to render the camera view onto
-      const plane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
-      plane.material.depthTest = false;
-      plane.material.depthWrite = false;
-
-      // Add the camera view plane to the scene
-      const cameraView = new THREE.Scene();
-      cameraView.add(camera);
-      cameraView.add(plane);
-
-      // Animate the cube
-      function animate() {
-        cube.rotation.x += 0.01;
-        cube.rotation.y += 0.01;
-        renderer.render(scene, cameraView);
-        requestAnimationFrame(animate);
-      }
-      requestAnimationFrame(animate);
-    </script>
-  </body>
+    const videoTexture = new THREE.VideoTexture(video);
+    const videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
+    const videoGeometry = new THREE.PlaneGeometry(2, 2);
+    const videoMesh = new THREE.Mesh(videoGeometry, videoMaterial);
+    videoMesh.position.set(0, 0, -1);
+    scene.add(videoMesh);
+    scene.add(cube);
+  </script>
+</body>
 </html>
