@@ -1,16 +1,22 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR Cube Demo</title>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.122.0/build/three.js"></script>
     <style>
       body { margin: 0; }
       canvas { width: 100vw; height: 100vh; display: block; }
+      #coordinates {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: white;
+        padding: 10px;
+      }
     </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
+    <div id="coordinates"></div>
     <script>
       // Get the canvas element
       const canvas = document.getElementById('canvas');
@@ -23,7 +29,7 @@
 
       // Create a camera and add it to the scene
       const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-      camera.position.z = 5;
+      scene.add(camera);
 
       // Create a light and add it to the scene
       const light = new THREE.PointLight(0xffffff, 1, 100);
@@ -32,32 +38,39 @@
 
       // Create a spinning cube and add it to the scene
       const cube = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(1, 1, 1),
+        new THREE.BoxBufferGeometry(10, 10, 10),
         new THREE.MeshLambertMaterial({ color: 0xff0000 })
       );
-      cube.position.set(0, 0, -5);
+      cube.position.set(0, 0, -60);
       scene.add(cube);
 
-      // Create an OrbitControls object to control the camera's position and orientation
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-
       // Get the device's orientation
-      window.addEventListener('deviceorientation', function(event) {
-        const alpha = event.alpha; // rotation around z-axis
-        const beta = event.beta; // rotation around x-axis
-        const gamma = event.gamma; // rotation around y-axis
+      if (window.DeviceOrientationEvent) {
+        window.addEventListener('deviceorientation', function(event) {
+          const heading = event.alpha;
+          const pitch = event.beta;
+          const roll = event.gamma;
 
-        // Convert the device's orientation to radians
-        const alphaRad = alpha * Math.PI / 180;
-        const betaRad = beta * Math.PI / 180;
-        const gammaRad = gamma * Math.PI / 180;
+          // Update the cube's position based on the device's heading
+          const x = -Math.sin(heading * Math.PI / 180) * 5;
+          const y = -Math.cos(heading * Math.PI / 180) * 5;
+          cube.position.set(x, y, -60);
 
-        // Set the camera's orientation based on the device's orientation
-        camera.rotation.order = 'YXZ';
-        camera.rotation.x = betaRad;
-        camera.rotation.y = alphaRad;
-        camera.rotation.z = -gammaRad;
-      });
+          // Display the coordinates
+          const coordinatesEl = document.getElementById('coordinates');
+          coordinatesEl.textContent = `Lat: ${latitude.toFixed(5)}, Long: ${longitude.toFixed(5)}`;
+        });
+      }
+
+      // Get the user's location
+      let latitude = 0;
+      let longitude = 0;
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(function(position) {
+          latitude = position.coords.latitude;
+          longitude = position.coords.longitude;
+        });
+      }
 
       // Render the scene
       function render() {
