@@ -2,48 +2,68 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Location-based AR</title>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v6.0.0/dist/aframe-extras.min.js"></script>
-    <script src="https://unpkg.com/ar.js"></script>
-    <style>
-      body { margin: 0; overflow: hidden; }
-      /* #map { position: absolute; top: 0; left: 0; width: 50%; height: 100%; } */
-      #ar { position: absolute; top: 0; right: 0; width: 50%; height: 100%; }
-    </style>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
   </head>
-  <body>
-    <!-- <div id="map"></div> -->
-    <div id="ar">
-      <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-        <a-marker preset="custom" type="pattern" url="marker.patt">
-          <a-entity position="0 0 0" rotation="0 0 0" scale="1 1 1" gltf-model="https://cdn.glitch.com/15fd86c8-21eb-49d1-ba89-437a1520af9f%2Fcube.gltf?v=1622830026788"></a-entity>
-        </a-marker>
-        <a-entity camera></a-entity>
-      </a-scene>
-    </div>
-    <!-- <script>
-      function initMap() {
-        // Create a map centered on the user's location
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(function(position) {
-            const map = new google.maps.Map(document.getElementById('map'), {
-              center: { lat: position.coords.latitude, lng: position.coords.longitude },
-              zoom: 14
-            });
+  <body style="margin: 0;">
+    <a-scene vr-mode-ui="enabled: false" arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+      <a-assets>
+        <a-asset-item id="cube-model" src="https://cdn.glitch.com/0bf9f3ba-bf8b-4706-903d-f53d212d2f26%2Fcube.gltf?v=1623926359262"></a-asset-item>
+      </a-assets>
 
-            // Create a marker for the user's location
-            new google.maps.Marker({
-              position: { lat: position.coords.latitude, lng: position.coords.longitude },
-              map: map
-            });
-          });
-        } else {
-          console.log('Geolocation is not supported by this browser.');
+      <a-marker-camera type="barcode">
+        <a-entity position="0 0 -10" scale="0.1 0.1 0.1" gltf-model="#cube-model"></a-entity>
+      </a-marker-camera>
+
+      <a-entity id="user-position" gps-camera rotation-reader></a-entity>
+
+      <a-entity id="cube" gltf-model="#cube-model" scale="0.1 0.1 0.1" position="0 0 -5"></a-entity>
+
+      <script>
+        // Get the user's position using the browser's geolocation API
+        navigator.geolocation.getCurrentPosition(position => {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+
+          // Set the user's position on the GPS camera entity
+          const userPosition = document.querySelector('#user-position');
+          userPosition.setAttribute('gps-camera', `latitude: ${latitude}; longitude: ${longitude}`);
+
+          // Calculate the position of the cube relative to the user's position
+          const cube = document.querySelector('#cube');
+          const distance = 5; // 5 feet from the user
+          const bearing = 0; // straight ahead
+          const cubePosition = calculatePosition(latitude, longitude, distance, bearing);
+          cube.setAttribute('gps-entity-place', `latitude: ${cubePosition.latitude}; longitude: ${cubePosition.longitude}; altitude: 0;`);
+        });
+
+        function calculatePosition(latitude, longitude, distance, bearing) {
+          const radius = 6371e3; // meters
+          const distanceRadians = distance / radius;
+          const bearingRadians = toRadians(bearing);
+          const latitudeRadians = toRadians(latitude);
+          const longitudeRadians = toRadians(longitude);
+
+          const newLatitude = Math.asin(Math.sin(latitudeRadians) * Math.cos(distanceRadians) +
+              Math.cos(latitudeRadians) * Math.sin(distanceRadians) * Math.cos(bearingRadians));
+          const newLongitude = longitudeRadians + Math.atan2(Math.sin(bearingRadians) * Math.sin(distanceRadians) * Math.cos(latitudeRadians),
+              Math.cos(distanceRadians) - Math.sin(latitudeRadians) * Math.sin(newLatitude));
+
+          return {
+            latitude: toDegrees(newLatitude),
+            longitude: toDegrees(newLongitude)
+          };
         }
-      }
-    </script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"></script> -->
+
+        function toRadians(degrees) {
+          return degrees * (Math.PI / 180);
+        }
+
+        function toDegrees(radians) {
+          return radians * (180 / Math.PI);
+        }
+      </script>
+    </a-scene>
   </body>
 </html>
