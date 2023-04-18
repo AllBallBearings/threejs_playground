@@ -1,63 +1,53 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR.js - Location-based example</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@glenco/arjs/dist/arjs.min.js"></script>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-      }
-      #info {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        color: white;
-        font-family: sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-        z-index: 1;
-      }
-      .arjs-loader {
-        display: none;
-      }
-      .arjs-video {
-        width: 100%;
-        height: 100%;
-      }
-      .arjs-video-container {
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 0;
-      }
-      .arjs-video-container video {
-        object-fit: cover;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="info">Loading...</div>
-    <a-scene vr-mode-ui="enabled: false" embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-      <a-marker type="geo" latitude="37.7749" longitude="-122.4194" distance="10" hit-testing-enabled="true">
-        <a-box position="0 0.5 0" material="src: https://cdn.glitch.com/ea614425-98b5-477c-8c50-200cc530abef%2Fcrate.gif?v=1636532168867;"></a-box>
-      </a-marker>
-      <a-entity camera></a-entity>
-    </a-scene>
-    <script>
-      const infoEl = document.getElementById('info');
-      const sceneEl = document.querySelector('a-scene');
+<head>
+	<title>Location-based AR Experience</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+	<style>
+		/* Add your custom CSS styles here */
+	</style>
+</head>
+<body>
+	<!-- Ask for location permission -->
+	<button onclick="initAR()">Enable AR</button>
 
-      sceneEl.addEventListener('gps-camera-update-position', function(ev) {
-        infoEl.innerText = `Latitude: ${ev.detail.position.latitude.toFixed(6)}, Longitude: ${ev.detail.position.longitude.toFixed(6)}, Altitude: ${ev.detail.position.altitude.toFixed(2)}`;
-      });
+	<!-- AR scene -->
+	<a-scene id="scene" embedded arjs="sourceType: webcam;">
 
-      sceneEl.addEventListener('loaded', function() {
-        infoEl.innerText = 'Point your camera at the location to place the cube.';
-      });
-    </script>
-  </body>
+		<!-- Add your AR content here -->
+		<a-sphere radius="1" position="0 0 -3" color="red"></a-sphere>
+
+	</a-scene>
+
+	<!-- Include your JavaScript code here -->
+	<script>
+		// Function to initialize AR
+		function initAR() {
+			// Request location permission
+			navigator.geolocation.getCurrentPosition(function (position) {
+				// Hide button after successful permission request
+				document.querySelector('button').style.display = 'none';
+
+				// Start AR tracking
+				var scene = document.querySelector('#scene');
+				scene.setAttribute('arjs', 'debugUIEnabled: false;');
+				scene.setAttribute('vr-mode-ui', 'enabled: false;');
+				scene.setAttribute('embedded', 'enabled: true;');
+				scene.setAttribute('arjs', 'trackingMethod: best;');
+				scene.setAttribute('arjs', 'sourceType: webcam;');
+				scene.setAttribute('arjs', 'debugUIEnabled: false;');
+
+				// Create and add the sphere to the scene
+				var sphere = document.createElement('a-sphere');
+				sphere.setAttribute('radius', '1');
+				sphere.setAttribute('position', `0 0 ${-position.coords.latitude - 3}`);
+				sphere.setAttribute('color', 'red');
+				scene.appendChild(sphere);
+			}, function (err) {
+				console.error('Error getting user location', err);
+			});
+		}
+	</script>
+</body>
 </html>
