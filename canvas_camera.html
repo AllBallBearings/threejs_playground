@@ -1,43 +1,31 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <style>
-      canvas {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-    </style>
+    <meta charset="utf-8">
+    <title>Live Video Feed</title>
   </head>
   <body>
-    <canvas id="camera-stream"></canvas>
+    <canvas id="canvas"></canvas>
+
     <script>
-        // Get the canvas element
-        const canvas = document.getElementById('camera-stream');
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
 
-        // Get the canvas context
-        const context = canvas.getContext('2d');
+      // get the user's camera
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(stream => {
+          // set the video source to the user's camera
+          const video = document.createElement('video');
+          video.srcObject = stream;
+          video.play();
 
-        // Set the canvas dimensions to match the camera stream
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        // Get the camera stream
-        navigator.mediaDevices.getUserMedia({ video: true })
-        .then(function(stream) {
-            // Attach the camera stream to a video element
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.setAttribute("playsinline", true);
-            video.play();
-
-            // Draw the camera stream onto the canvas
-            setInterval(function() {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            }, 16);
+          // draw the video to the canvas every 16ms
+          setInterval(() => {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          }, 16);
         })
-        .catch(function(error) {
-            console.error('Error accessing camera:', error);
+        .catch(error => {
+          console.error(error);
         });
     </script>
   </body>
