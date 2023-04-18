@@ -2,31 +2,38 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Live Video Feed</title>
+    <title>Camera Test</title>
+    <style>
+      body { margin: 0; }
+      canvas { width: 100vw; height: 100vh; display: block; }
+    </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
-
     <script>
-      const canvas = document.getElementById('canvas');
-      const ctx = canvas.getContext('2d');
+      const video = document.createElement('video');
+      video.setAttribute('playsinline', '');
+      video.setAttribute('autoplay', '');
+      video.setAttribute('muted', '');
+      video.setAttribute('width', window.innerWidth);
+      video.setAttribute('height', window.innerHeight);
 
-      // get the user's camera
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(stream => {
-          // set the video source to the user's camera
-          const video = document.createElement('video');
+      const canvas = document.getElementById('canvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const context = canvas.getContext('2d');
+
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(function (stream) {
           video.srcObject = stream;
           video.play();
-
-          // draw the video to the canvas every 16ms
-          setInterval(() => {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          }, 16);
-        })
-        .catch(error => {
-          console.error(error);
         });
+
+      function render() {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        requestAnimationFrame(render);
+      }
+      requestAnimationFrame(render);
     </script>
   </body>
 </html>
