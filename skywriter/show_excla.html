@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Find Me App</title>
+    <style>
+      #strobeCanvas {
+        display: none; /* Hide the canvas by default */
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="strobeCanvas" width="300" height="300"></canvas>
+    <div id="message" style="font-size: 48px; color: blue; display: none">
+      !
+    </div>
+    <script>
+      const canvas = document.getElementById("strobeCanvas");
+      const context = canvas.getContext("2d");
+      const messageDiv = document.getElementById("message");
+      let isFlashing = true;
+      let stopTime = Date.now() + 10000; // Stop after 10 seconds
+
+      function flashStrobe() {
+        if (isFlashing && Date.now() < stopTime) {
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          if (context.fillStyle === "white") {
+            context.fillStyle = "black";
+            messageDiv.style.display = "none"; // Hide the message when not upright
+          } else {
+            context.fillStyle = "white";
+            if (isUpright()) {
+              messageDiv.style.display = "block"; // Display the message when upright
+            } else {
+              messageDiv.style.display = "none"; // Hide the message when not upright
+            }
+          }
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          requestAnimationFrame(flashStrobe);
+        } else {
+          isFlashing = false;
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          messageDiv.style.display = "none";
+        }
+      }
+
+      function isUpright() {
+        // Use the device's accelerometer to determine if the phone is upright
+        // You may need to adjust the threshold values based on your device
+        const thresholdX = 7;
+        const thresholdY = 7;
+        const thresholdZ = 7;
+
+        if (window.DeviceMotionEvent) {
+          window.addEventListener("devicemotion", (event) => {
+            const acceleration = event.accelerationIncludingGravity;
+            if (
+              Math.abs(acceleration.x) > thresholdX ||
+              Math.abs(acceleration.y) > thresholdY ||
+              Math.abs(acceleration.z) > thresholdZ
+            ) {
+              return true;
+            } else {
+              return false;
+            }
+          });
+        }
+      }
+
+      flashStrobe(); // Start strobe immediately
+    </script>
+  </body>
+</html>
