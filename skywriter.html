@@ -1,33 +1,39 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Strobe Light</title>
-</head>
-<body>
-    <canvas id="strobeCanvas" width="300" height="300"></canvas>
+  <head>
+    <title>Strobe Effect</title>
+    <style>
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
     <script>
-        const canvas = document.getElementById('strobeCanvas');
-        const context = canvas.getContext('2d');
-        let isFlashing = true;
-        let stopTime = Date.now() + 10000; // Stop after 10 seconds
+      var canvas = document.getElementById("canvas");
+      var ctx = canvas.getContext("2d");
 
-        function flashStrobe() {
-            if (isFlashing && Date.now() < stopTime) {
-                context.clearRect(0, 0, canvas.width, canvas.height);
-                if (context.fillStyle === 'white') {
-                    context.fillStyle = 'black';
-                } else {
-                    context.fillStyle = 'white';
-                }
-                context.fillRect(0, 0, canvas.width, canvas.height);
-                requestAnimationFrame(flashStrobe);
-            } else {
-                isFlashing = false;
-                context.clearRect(0, 0, canvas.width, canvas.height);
-            }
+      var state = "white";
+
+      var interval = setInterval(function () {
+        if (state === "white") {
+          ctx.fillStyle = "black";
+          state = "black";
+        } else {
+          ctx.fillStyle = "white";
+          state = "white";
         }
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }, 0.25);
 
-        flashStrobe(); // Start strobe immediately
+      // Touch event listener to stop the strobe effect
+      canvas.addEventListener("touchstart", function () {
+        clearInterval(interval);
+        canvas.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      });
     </script>
-</body>
+  </body>
 </html>
