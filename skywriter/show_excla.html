@@ -6,6 +6,9 @@
       #strobeCanvas {
         display: none; /* Hide the canvas by default */
       }
+      #position-labels {
+        font-size: 16px;
+      }
     </style>
   </head>
   <body>
@@ -13,10 +16,18 @@
     <div id="message" style="font-size: 48px; color: blue; display: none">
       !
     </div>
+    <div id="position-labels">
+      <p id="x-label">X: 0</p>
+      <p id="y-label">Y: 0</p>
+      <p id="z-label">Z: 0</p>
+    </div>
     <script>
       const canvas = document.getElementById("strobeCanvas");
       const context = canvas.getContext("2d");
       const messageDiv = document.getElementById("message");
+      const xLabel = document.getElementById("x-label");
+      const yLabel = document.getElementById("y-label");
+      const zLabel = document.getElementById("z-label");
       let isFlashing = true;
       let stopTime = Date.now() + 10000; // Stop after 10 seconds
 
@@ -53,10 +64,18 @@
         if (window.DeviceMotionEvent) {
           window.addEventListener("devicemotion", (event) => {
             const acceleration = event.accelerationIncludingGravity;
+            const x = acceleration.x;
+            const y = acceleration.y;
+            const z = acceleration.z;
+
+            xLabel.textContent = `X: ${x.toFixed(2)}`;
+            yLabel.textContent = `Y: ${y.toFixed(2)}`;
+            zLabel.textContent = `Z: ${z.toFixed(2)}`;
+
             if (
-              Math.abs(acceleration.x) > thresholdX ||
-              Math.abs(acceleration.y) > thresholdY ||
-              Math.abs(acceleration.z) > thresholdZ
+              Math.abs(x) > thresholdX ||
+              Math.abs(y) > thresholdY ||
+              Math.abs(z) > thresholdZ
             ) {
               return true;
             } else {
