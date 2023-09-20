@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Strobe Light</title>
+</head>
+<body>
+    <canvas id="strobeCanvas" width="300" height="300"></canvas>
+    <script>
+        const canvas = document.getElementById('strobeCanvas');
+        const context = canvas.getContext('2d');
+        let isFlashing = true;
+        let stopTime = Date.now() + 10000; // Stop after 10 seconds
+
+        function flashStrobe() {
+            if (isFlashing && Date.now() < stopTime) {
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                if (context.fillStyle === 'white') {
+                    context.fillStyle = 'black';
+                } else {
+                    context.fillStyle = 'white';
+                }
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                requestAnimationFrame(flashStrobe);
+            } else {
+                isFlashing = false;
+                context.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        flashStrobe(); // Start strobe immediately
+    </script>
+</body>
+</html>
