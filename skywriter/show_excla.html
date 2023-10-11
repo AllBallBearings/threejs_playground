@@ -30,6 +30,7 @@
       const zLabel = document.getElementById("z-label");
       let isFlashing = true;
       let stopTime = Date.now() + 10000; // Stop after 10 seconds
+      let accelerometerData = { x: 0, y: 0, z: 0 };
 
       function flashStrobe() {
         if (isFlashing && Date.now() < stopTime) {
@@ -64,18 +65,18 @@
         if (window.DeviceMotionEvent) {
           window.addEventListener("devicemotion", (event) => {
             const acceleration = event.accelerationIncludingGravity;
-            const x = acceleration.x;
-            const y = acceleration.y;
-            const z = acceleration.z;
+            accelerometerData.x = acceleration.x;
+            accelerometerData.y = acceleration.y;
+            accelerometerData.z = acceleration.z;
 
-            xLabel.textContent = `X: ${x.toFixed(2)}`;
-            yLabel.textContent = `Y: ${y.toFixed(2)}`;
-            zLabel.textContent = `Z: ${z.toFixed(2)}`;
+            xLabel.textContent = `X: ${accelerometerData.x.toFixed(2)}`;
+            yLabel.textContent = `Y: ${accelerometerData.y.toFixed(2)}`;
+            zLabel.textContent = `Z: ${accelerometerData.z.toFixed(2)}`;
 
             if (
-              Math.abs(x) > thresholdX ||
-              Math.abs(y) > thresholdY ||
-              Math.abs(z) > thresholdZ
+              Math.abs(accelerometerData.x) > thresholdX ||
+              Math.abs(accelerometerData.y) > thresholdY ||
+              Math.abs(accelerometerData.z) > thresholdZ
             ) {
               return true;
             } else {
