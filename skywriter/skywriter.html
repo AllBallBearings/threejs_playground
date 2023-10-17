@@ -1,39 +1,12 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Strobe Effect</title>
-    <style>
-      canvas {
-        width: 100%;
-        height: 100%;
-      }
-    </style>
+    <title>LED Display</title>
   </head>
   <body>
-    <canvas id="canvas"></canvas>
-    <script>
-      var canvas = document.getElementById("canvas");
-      var ctx = canvas.getContext("2d");
-
-      var state = "white";
-
-      var interval = setInterval(function () {
-        if (state === "white") {
-          ctx.fillStyle = "black";
-          state = "black";
-        } else {
-          ctx.fillStyle = "white";
-          state = "white";
-        }
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }, 0.25);
-
-      // Touch event listener to stop the strobe effect
-      canvas.addEventListener("touchstart", function () {
-        clearInterval(interval);
-        canvas.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      });
-    </script>
+    <input type="text" id="nameInput" placeholder="Enter Name" />
+    <button onclick="startDisplay()">Start</button>
+    <div id="display"></div>
+    <script src="script.js"></script>
   </body>
 </html>
