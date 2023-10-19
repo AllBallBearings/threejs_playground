@@ -1,16 +1,3 @@
-// Request accelerometer access
-async function requestAccess() {
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    const permission = await DeviceOrientationEvent.requestPermission()
-    if (permission === 'granted') {
-      window.addEventListener('deviceorientation', handleOrientation)
-    }
-  } else {
-    // Older browser, just add the listener.
-    window.addEventListener('deviceorientation', handleOrientation)
-  }
-}
-
 // Handle accelerometer data
 function handleOrientation(event) {
   const { alpha, beta, gamma } = event
@@ -19,28 +6,22 @@ function handleOrientation(event) {
 
 // Start the LED-like display
 function startDisplay() {
-  requestAccess()
   const name = document.getElementById("nameInput").value
-  const display = document.getElementById("display");
-  
-  // Logic for animating the text display
-  // ...
+  //start the animation
   animateName(name)
 }
 
-let nameIndex = 0;
-
 function animateName(name) {
+  const display = document.getElementById("display");
   console.log(name)
-  requestAnimationFrame(() => {
-    if (nameIndex < name.length) {
-      // Show the letter at nameIndex
-      // ...
+  let nameIndex = 0
+  splitName = name.split("")
+  requestAnimationFrame(function animate() {
+    if (nameIndex < splitName.length) {
+      //show the letter at nameIndex on the display
+      display.innerHTML = splitName[nameIndex];
       nameIndex++;
-      animateName(name)
+      requestAnimationFrame(animate);
     }
   });
 }
-
-// Request permission on page load
-window.onload = requestAccess
