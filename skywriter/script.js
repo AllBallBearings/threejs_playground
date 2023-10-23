@@ -1,7 +1,17 @@
+// Attach the event listener
+window.addEventListener('deviceorientation', handleOrientation)
+
 // Handle accelerometer data
 function handleOrientation(event) {
   const { alpha, beta, gamma } = event
   // Logic to decide when to show the next letter based on orientation
+  // Start the display if it hasn't started yet
+  console.log(alpha)
+  const alphaDisplay = document.getElementById("alpha")
+  alphaDisplay.innerHTML = alpha
+  if (alpha > 0 && alpha < 90) {
+    startDisplay()
+  }
 }
 
 // Start the LED-like display
@@ -19,9 +29,9 @@ function animateName(name) {
   requestAnimationFrame(function animate() {
     if (nameIndex < splitName.length) {
       //show the letter at nameIndex on the display
-      display.innerHTML = splitName[nameIndex];
+      display.innerHTML = splitName[nameIndex]
       nameIndex++;
-      requestAnimationFrame(animate);
+      requestAnimationFrame(animate)
     }
   });
 }
