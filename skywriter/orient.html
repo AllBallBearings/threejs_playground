@@ -14,6 +14,11 @@
 
     <script>
       document.addEventListener("DOMContentLoaded", function () {
+        if (window.DeviceOrientationEvent) {
+          //window.addEventListener('deviceorientation', deviceOrientationHandler, false);
+          document.getElementById("alpha").innerText = "Supported!";
+        }
+
         if (typeof DeviceOrientationEvent.requestPermission === "function") {
           DeviceOrientationEvent.requestPermission()
             .then((permissionState) => {
@@ -25,11 +30,12 @@
         } else {
           // handle regular non iOS 13+ devices
           window.addEventListener("deviceorientation", handleOrientation);
+          // document.getElementById("alpha").innerText = "Not supported";
         }
       });
 
       function handleOrientation(event) {
-        document.getElementById("alpha").innerText = event.alpha.toFixed(2);
+        // document.getElementById("alpha").innerText = event.alpha.toFixed(2);
         document.getElementById("beta").innerText = event.beta.toFixed(2);
         document.getElementById("gamma").innerText = event.gamma.toFixed(2);
       }
