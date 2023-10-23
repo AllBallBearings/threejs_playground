@@ -13,14 +13,25 @@
     <p>Gamma: <span id="gamma">0</span>°</p>
 
     <script>
-      if (window.DeviceOrientationEvent) {
-        window.addEventListener("deviceorientation", function (event) {
-          document.getElementById("alpha").innerText = event.alpha.toFixed(2);
-          document.getElementById("beta").innerText = event.beta.toFixed(2);
-          document.getElementById("gamma").innerText = event.gamma.toFixed(2);
-        });
-      } else {
-        alert("Sorry, your device doesn't support DeviceOrientation");
+      document.addEventListener("DOMContentLoaded", function () {
+        if (typeof DeviceOrientationEvent.requestPermission === "function") {
+          DeviceOrientationEvent.requestPermission()
+            .then((permissionState) => {
+              if (permissionState === "granted") {
+                window.addEventListener("deviceorientation", handleOrientation);
+              }
+            })
+            .catch(console.error);
+        } else {
+          // handle regular non iOS 13+ devices
+          window.addEventListener("deviceorientation", handleOrientation);
+        }
+      });
+
+      function handleOrientation(event) {
+        document.getElementById("alpha").innerText = event.alpha.toFixed(2);
+        document.getElementById("beta").innerText = event.beta.toFixed(2);
+        document.getElementById("gamma").innerText = event.gamma.toFixed(2);
       }
     </script>
   </body>
