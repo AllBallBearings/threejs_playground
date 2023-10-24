@@ -1,5 +1,6 @@
 // Attach the event listener
 function attachListener() {
+  document.getElementById("alpha").innerText = 'here'
   document.addEventListener("DOMContentLoaded", function () {
     if (typeof DeviceOrientationEvent.requestPermission === "function") {
       document
