@@ -20,14 +20,13 @@
         }
 
         if (typeof DeviceOrientationEvent.requestPermission === "function") {
-          document.getElementById("alpha").innerText = "not supported";
           DeviceOrientationEvent.requestPermission()
             .then((permissionState) => {
               if (permissionState === "granted") {
                 window.addEventListener("deviceorientation", handleOrientation);
               }
             })
-            .catch(console.error);
+            .catch((document.getElementById("alpha").innerText = error));
         } else {
           document.getElementById("alpha").innerText = "iOS 13+";
           // handle regular non iOS 13+ devices
