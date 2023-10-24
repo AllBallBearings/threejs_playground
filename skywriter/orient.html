@@ -22,13 +22,23 @@
         if (typeof DeviceOrientationEvent.requestPermission === "function") {
           DeviceOrientationEvent.requestPermission()
             .then((permissionState) => {
-              document.getElementById("alpha").innerText = "here 1";
+              document.getElementById("alpha").innerText =
+                "Permission state received.";
+
               if (permissionState === "granted") {
-                document.getElementById("alpha").innerText = "here 2";
+                document.getElementById("alpha").innerText =
+                  "Permission granted.";
                 window.addEventListener("deviceorientation", handleOrientation);
+              } else {
+                document.getElementById("alpha").innerText =
+                  "Permission state: " + permissionState;
               }
             })
-            .catch((document.getElementById("alpha").innerText = error));
+            .catch((error) => {
+              document.getElementById("alpha").innerText =
+                "Error occurred: " + error;
+              console.error("DeviceOrientationEvent Error:", error);
+            });
         } else {
           document.getElementById("alpha").innerText = "iOS 13+";
           // handle regular non iOS 13+ devices
