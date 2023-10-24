@@ -1,5 +1,38 @@
 // Attach the event listener
-window.addEventListener('deviceorientation', handleOrientation)
+document.addEventListener("DOMContentLoaded", function () {
+  if (typeof DeviceOrientationEvent.requestPermission === "function") {
+    document
+      .getElementById("requestPermission")
+      .addEventListener("click", function () {
+        DeviceOrientationEvent.requestPermission()
+          .then((permissionState) => {
+            document.getElementById("alpha").innerText =
+              "Permission state received.";
+
+            if (permissionState === "granted") {
+              document.getElementById("alpha").innerText =
+                "Permission granted.";
+              window.addEventListener(
+                "deviceorientation",
+                handleOrientation
+              );
+            } else {
+              document.getElementById("alpha").innerText =
+                "Permission state: " + permissionState;
+            }
+          })
+          .catch((error) => {
+            document.getElementById("alpha").innerText =
+              "Error occurred: " + error;
+            console.error("DeviceOrientationEvent Error:", error);
+          });
+      });
+  } else {
+    document.getElementById("alpha").innerText = "iOS 13+";
+    // handle regular non iOS 13+ devices
+    window.addEventListener("deviceorientation", handleOrientation);
+  }
+});
 
 // Handle accelerometer data
 function handleOrientation(event) {
