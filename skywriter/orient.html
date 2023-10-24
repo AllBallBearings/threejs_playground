@@ -15,11 +15,6 @@
 
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        if (window.DeviceOrientationEvent) {
-          //window.addEventListener('deviceorientation', deviceOrientationHandler, false);
-          document.getElementById("alpha").innerText = "Supported!";
-        }
-
         if (typeof DeviceOrientationEvent.requestPermission === "function") {
           document
             .getElementById("requestPermission")
