@@ -29,9 +29,9 @@
             })
             .catch(console.error);
         } else {
+          document.getElementById("alpha").innerText = "iOS 13+";
           // handle regular non iOS 13+ devices
           window.addEventListener("deviceorientation", handleOrientation);
-          document.getElementById("alpha").innerText = "iOS 13+";
         }
       });
 
