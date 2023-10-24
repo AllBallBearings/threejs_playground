@@ -22,7 +22,9 @@
         if (typeof DeviceOrientationEvent.requestPermission === "function") {
           DeviceOrientationEvent.requestPermission()
             .then((permissionState) => {
+              document.getElementById("alpha").innerText = "here 1";
               if (permissionState === "granted") {
+                document.getElementById("alpha").innerText = "here 2";
                 window.addEventListener("deviceorientation", handleOrientation);
               }
             })
