@@ -3,6 +3,7 @@ function attachListener() {
   document.getElementById("alpha").innerText = 'here'
   document.addEventListener("DOMContentLoaded", function () {
     if (typeof DeviceOrientationEvent.requestPermission === "function") {
+        document.getElementById("alpha").innerText = 'inside if'
       document
         .getElementById("requestPermission")
         .addEventListener("click", function () {
