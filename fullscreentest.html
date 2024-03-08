@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      #fullscreenButton {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="fullscreenButton">Go Full Screen</button>
+
+    <script>
+      var fullscreenButton = document.getElementById("fullscreenButton");
+
+      fullscreenButton.addEventListener("click", function () {
+        var elem = document.documentElement;
+
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.mozRequestFullScreen) {
+          /* Firefox */
+          elem.mozRequestFullScreen();
+        } else if (elem.webkitRequestFullscreen) {
+          /* Chrome, Safari and Opera */
+          elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+          /* IE/Edge */
+          elem.msRequestFullscreen();
+        }
+      });
+
+      // Show the fullscreen button after a delay
+      setTimeout(function () {
+        fullscreenButton.style.display = "block";
+      }, 2000);
+    </script>
+  </body>
+</html>
