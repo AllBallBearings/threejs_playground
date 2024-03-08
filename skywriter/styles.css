@@ -1,0 +1,31 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: black;
+  overflow: hidden;
+}
+
+#input-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+#name-input {
+  padding: 10px;
+  font-size: 16px;
+}
+
+#start-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+}
+
+canvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+}

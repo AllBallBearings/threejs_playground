@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="icon" href="./triballbearing.svg" />
-    <title>LED Display</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Friend Finder</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <script src="script.js"></script>
-    <button id="requestPermission" onclick="attachListener()">
-      Request Permission
-    </button>
-    <input type="text" id="nameInput" placeholder="Enter Name" />
-    <button onclick="startDisplay()">Start</button>
-    <div id="display"></div>
-    <div id="alpha">Alpha</div>
+    <div id="input-container">
+      <input
+        type="text"
+        id="name-input"
+        placeholder="Enter your friend's name"
+      />
+      <button id="start-btn">Start</button>
+    </div>
+    <canvas id="led-canvas"></canvas>
+    <script src="app.js"></script>
   </body>
 </html>
