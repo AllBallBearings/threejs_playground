@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Mobile Orientation</title>
+    <style>
+      body {
+        font-size: 100px;
+        text-align: center;
+        margin-top: 40vh;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.addEventListener("deviceorientation", handleOrientation);
+
+      function handleOrientation(event) {
+        var angle = event.beta;
+
+        if (angle < -45) {
+          document.body.innerHTML = "1";
+        } else if (angle > 45) {
+          document.body.innerHTML = "3";
+        } else {
+          document.body.innerHTML = "2";
+        }
+      }
+    </script>
+  </body>
+</html>
