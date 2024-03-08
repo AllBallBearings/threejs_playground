@@ -8,18 +8,24 @@ let ledRadius = 5;
 let ledSpacing = 10;
 let ledColor = '#00ff00';
 let name = '';
+let angle = 0;
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 }
 
-function drawLedName(position) {
+function drawLedName() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radius = Math.min(centerX, centerY) - (ledRadius + ledSpacing) * name.length / 2;
+
   for (let i = 0; i < name.length; i++) {
-    let x = position + i * (ledRadius * 2 + ledSpacing);
-    let y = canvas.height / 2;
+    const letterAngle = (i / name.length) * 2 * Math.PI - Math.PI / 2;
+    const x = centerX + radius * Math.cos(letterAngle + angle);
+    const y = centerY + radius * Math.sin(letterAngle + angle);
 
     ctx.beginPath();
     ctx.arc(x, y, ledRadius, 0, 2 * Math.PI);
@@ -29,23 +35,16 @@ function drawLedName(position) {
 }
 
 function animateLedName() {
-  let position = -canvas.width / 2;
-  let direction = 1;
-
   function animate() {
-    position += 10 * direction;
-
-    if (position > canvas.width) {
-      position = -canvas.width / 2;
-    } else if (position < -canvas.width / 2) {
-      position = canvas.width;
-    }
-
-    drawLedName(position);
+    drawLedName();
     animationFrameId = requestAnimationFrame(animate);
   }
 
   animationFrameId = requestAnimationFrame(animate);
+}
+
+function handleOrientation(event) {
+  angle = (event.alpha * Math.PI) / 180;
 }
 
 function startAnimation() {
@@ -53,6 +52,16 @@ function startAnimation() {
   nameInput.disabled = true;
   startBtn.disabled = true;
   resizeCanvas();
+
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen();
+  } else if (document.documentElement.webkitRequestFullscreen) {
+    document.documentElement.webkitRequestFullscreen();
+  } else if (document.documentElement.msRequestFullscreen) {
+    document.documentElement.msRequestFullscreen();
+  }
+
+  window.addEventListener('deviceorientation', handleOrientation);
   animateLedName();
 }
 
