@@ -12,7 +12,17 @@
   </head>
   <body>
     <script>
-      window.addEventListener("deviceorientation", handleOrientation);
+      if (typeof DeviceOrientationEvent.requestPermission === "function") {
+        DeviceOrientationEvent.requestPermission()
+          .then((permissionState) => {
+            if (permissionState === "granted") {
+              window.addEventListener("deviceorientation", handleOrientation);
+            }
+          })
+          .catch(console.error);
+      } else {
+        window.addEventListener("deviceorientation", handleOrientation);
+      }
 
       function handleOrientation(event) {
         var angle = event.beta;
