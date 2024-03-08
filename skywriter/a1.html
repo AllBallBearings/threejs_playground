@@ -11,48 +11,50 @@
       }
     </style>
   </head>
-  <body>
-    <div
-      id="loading"
-      style="
-        width: 100vw;
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      "
-    >
-      <h1 style="font-size: 10vw">Go</h1>
-    </div>
-    <script>
-      // Hide the loading div once the page is loaded
-      window.addEventListener("load", function () {
-        document.getElementById("loading").style.display = "none";
-      });
+  <html>
+    <body>
+      <div
+        id="loading"
+        style="
+          width: 100vw;
+          height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        "
+      >
+        <h1 style="font-size: 10vw">Go</h1>
+      </div>
+      <script>
+        // Hide the loading div once the page is loaded
+        window.addEventListener("load", function () {
+          document.getElementById("loading").style.display = "none";
+        });
 
-      if (typeof DeviceOrientationEvent.requestPermission === "function") {
-        DeviceOrientationEvent.requestPermission()
-          .then((permissionState) => {
-            if (permissionState === "granted") {
-              window.addEventListener("deviceorientation", handleOrientation);
-            }
-          })
-          .catch(console.error);
-      } else {
-        window.addEventListener("deviceorientation", handleOrientation);
-      }
-
-      function handleOrientation(event) {
-        var angle = event.beta;
-
-        if (angle < -45) {
-          document.body.innerHTML = "1";
-        } else if (angle > 45) {
-          document.body.innerHTML = "3";
+        if (typeof DeviceOrientationEvent.requestPermission === "function") {
+          DeviceOrientationEvent.requestPermission()
+            .then((permissionState) => {
+              if (permissionState === "granted") {
+                window.addEventListener("deviceorientation", handleOrientation);
+              }
+            })
+            .catch(console.error);
         } else {
-          document.body.innerHTML = "2";
+          window.addEventListener("deviceorientation", handleOrientation);
         }
-      }
-    </script>
-  </body>
+
+        function handleOrientation(event) {
+          var angle = event.beta;
+
+          if (angle < -45) {
+            document.body.innerHTML = "1";
+          } else if (angle > 45) {
+            document.body.innerHTML = "3";
+          } else {
+            document.body.innerHTML = "2";
+          }
+        }
+      </script>
+    </body>
+  </html>
 </html>
