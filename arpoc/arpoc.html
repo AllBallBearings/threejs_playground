@@ -30,17 +30,17 @@
     <script>
       async function requestPermissions() {
         try {
-          // Request rear-facing camera access more flexibly
+          // Request permission to use the rear-facing camera
           const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "environment" },
           });
-          const video = document.getElementById("arView");
-          video.srcObject = stream;
+
+          handleCameraStream(stream);
 
           // Request access to orientation sensors
           if (typeof DeviceOrientationEvent.requestPermission === "function") {
-            const response = await DeviceOrientationEvent.requestPermission();
-            if (response === "granted") {
+            const permission = await DeviceOrientationEvent.requestPermission();
+            if (permission === "granted") {
               initializeAR();
             } else {
               alert("Orientation sensor permission denied");
@@ -55,6 +55,14 @@
             "Unable to access camera or sensors. Please check your browser settings."
           );
         }
+      }
+
+      function handleCameraStream(stream) {
+        const video = document.getElementById("arView");
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+        };
       }
 
       function initializeAR() {
