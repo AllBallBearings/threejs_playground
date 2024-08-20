@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AR POC</title>
+    <title>Camera View</title>
     <style>
       body,
       html {
@@ -11,112 +11,62 @@
         padding: 0;
         overflow: hidden;
         height: 100%;
-        background: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #000;
       }
-      #arView {
-        position: absolute;
-        top: 0;
-        left: 0;
+      video {
         width: 100%;
         height: 100%;
-        z-index: -1;
+        object-fit: cover;
       }
     </style>
   </head>
   <body>
-    <video id="arView" autoplay playsinline></video>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.1/gsap.min.js"></script>
+    <video id="cameraVideo" autoplay playsinline></video>
     <script>
-      async function requestPermissions() {
+      async function startCamera() {
         try {
-          // Request permission to use the rear-facing camera
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-          });
-
-          handleCameraStream(stream);
-
-          // Request access to orientation sensors
-          if (typeof DeviceOrientationEvent.requestPermission === "function") {
-            const permission = await DeviceOrientationEvent.requestPermission();
-            if (permission === "granted") {
-              initializeAR();
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(
+            navigator.userAgent
+          );
+          let constraints = {
+            video: isMobile
+              ? { facingMode: { exact: "environment" } } // Use rear-facing camera on mobile
+              : true, // Use default camera on laptop
+          };
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia(
+              constraints
+            );
+            const videoElement = document.getElementById("cameraVideo");
+            videoElement.srcObject = stream;
+          } catch (error) {
+            if (error.name === "OverconstrainedError" && isMobile) {
+              // Fallback to default camera if rear-facing camera is not available
+              constraints = { video: true };
+              const stream = await navigator.mediaDevices.getUserMedia(
+                constraints
+              );
+              const videoElement = document.getElementById("cameraVideo");
+              videoElement.srcObject = stream;
             } else {
-              alert("Orientation sensor permission denied");
+              throw error;
             }
-          } else {
-            // For browsers that do not require explicit permission
-            initializeAR();
           }
         } catch (error) {
-          console.error("Permission error:", error);
-          alert(
-            "Unable to access camera or sensors. Please check your browser settings."
-          );
+          handleCameraError(error);
         }
       }
 
-      function handleCameraStream(stream) {
-        const video = document.getElementById("arView");
-        video.srcObject = stream;
-        video.onloadedmetadata = () => {
-          video.play();
-        };
+      function handleCameraError(error) {
+        console.error("Error accessing the camera", error);
+        alert(`Error accessing the camera: ${error.name} - ${error.message}`);
+        // Additional error handling can be added here
       }
 
-      function initializeAR() {
-        // Set up Three.js scene
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(
-          70,
-          window.innerWidth / window.innerHeight,
-          0.01,
-          1000
-        );
-        const renderer = new THREE.WebGLRenderer({ alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        // Create a simple 3D object (e.g., a cube)
-        const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); // Adjust size as needed
-        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const cube = new THREE.Mesh(geometry, material);
-        scene.add(cube);
-
-        // Position the object at five feet due east of the user's current orientation
-        let currentOrientation = 0;
-        const fiveFeetInMeters = 1.524; // Approx 5 feet in meters
-
-        window.addEventListener(
-          "deviceorientation",
-          (event) => {
-            const alpha = event.alpha;
-            if (alpha !== null) {
-              currentOrientation = alpha;
-            }
-          },
-          true
-        );
-
-        function updateObjectPosition() {
-          // Calculate the x and y position based on current orientation
-          const radians = currentOrientation * (Math.PI / 180);
-          cube.position.x = fiveFeetInMeters * Math.cos(radians);
-          cube.position.z = fiveFeetInMeters * Math.sin(radians);
-        }
-
-        function animate() {
-          requestAnimationFrame(animate);
-          updateObjectPosition();
-          renderer.render(scene, camera);
-        }
-
-        animate();
-      }
-
-      // Request permissions when the page loads
-      document.addEventListener("DOMContentLoaded", requestPermissions);
+      document.addEventListener("DOMContentLoaded", startCamera);
     </script>
   </body>
 </html>
