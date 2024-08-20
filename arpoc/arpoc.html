@@ -26,14 +26,13 @@
   <body>
     <video id="arView" autoplay playsinline></video>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.1/gsap.min.js"></script>
     <script>
       async function requestPermissions() {
         try {
-          // Request rear-facing camera access
+          // Request rear-facing camera access more flexibly
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: "environment" } },
+            video: { facingMode: "environment" },
           });
           const video = document.getElementById("arView");
           video.srcObject = stream;
