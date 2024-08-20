@@ -39,13 +39,18 @@
           const canvas = document.getElementById("cameraCanvas");
           const context = canvas.getContext("2d");
 
-          video.addEventListener("loadedmetadata", () => {
+          // Ensure the video is playing
+          video.addEventListener("play", () => {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             drawVideoFrame();
           });
 
+          // Function to draw the video frames continuously
           function drawVideoFrame() {
+            if (video.paused || video.ended) {
+              return;
+            }
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             requestAnimationFrame(drawVideoFrame);
           }
