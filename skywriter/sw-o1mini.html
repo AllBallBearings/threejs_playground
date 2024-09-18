@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LED Light Display Simulator</title>
+    <style>
+      /* Reset and basic styles */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        background-color: #000;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      /* Input Section */
+      .input-section {
+        position: absolute;
+        top: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 20px 30px;
+        border-radius: 15px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      }
+
+      .input-section input {
+        padding: 15px;
+        font-size: 1.5rem;
+        border: none;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        width: 250px;
+        text-align: center;
+        outline: none;
+        background-color: #222;
+        color: #fff;
+      }
+
+      .input-section button {
+        padding: 15px 30px;
+        font-size: 1.2rem;
+        border: none;
+        border-radius: 10px;
+        background-color: #28a745;
+        color: #fff;
+        cursor: pointer;
+        margin: 5px;
+        width: 150px;
+        transition: background-color 0.3s, transform 0.2s;
+      }
+
+      .input-section button:hover {
+        background-color: #218838;
+      }
+
+      .input-section button:active {
+        transform: scale(0.95);
+      }
+
+      /* Display Area */
+      .display-area {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .led-display {
+        display: flex;
+        gap: 80px;
+        transform: translateX(0);
+        transition: transform 0.5s ease-in-out;
+      }
+
+      .letter {
+        display: grid;
+        grid-template-columns: repeat(5, var(--dot-size));
+        grid-template-rows: repeat(7, var(--dot-size));
+        gap: calc(var(--dot-size) / 2);
+        transform: scale(var(--scale));
+      }
+
+      .dot {
+        width: var(--dot-size);
+        height: var(--dot-size);
+        background-color: #0f0;
+        border-radius: 50%;
+        opacity: 0;
+        animation: flash var(--flash-speed) infinite;
+      }
+
+      /* Flashing Animation */
+      @keyframes flash {
+        0%,
+        50%,
+        100% {
+          opacity: 1;
+        }
+        25%,
+        75% {
+          opacity: 0;
+        }
+      }
+
+      /* Waving Animation */
+      @keyframes wave {
+        0% {
+          transform: rotate(0deg);
+        }
+        25% {
+          transform: rotate(10deg);
+        }
+        50% {
+          transform: rotate(0deg);
+        }
+        75% {
+          transform: rotate(-10deg);
+        }
+        100% {
+          transform: rotate(0deg);
+        }
+      }
+
+      .waving {
+        animation: wave 2s infinite;
+        transform-origin: center;
+      }
+
+      /* Reset Button */
+      .reset-button {
+        position: absolute;
+        top: 10%;
+        right: 5%;
+        background-color: #dc3545;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 15px 25px;
+        font-size: 1rem;
+        cursor: pointer;
+        display: none;
+        transition: background-color 0.3s, transform 0.2s;
+      }
+
+      .reset-button:hover {
+        background-color: #c82333;
+      }
+
+      .reset-button:active {
+        transform: scale(0.95);
+      }
+
+      /* Instructions Overlay */
+      .instructions {
+        position: absolute;
+        bottom: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px 25px;
+        border-radius: 10px;
+        font-size: 1rem;
+        color: #fff;
+        text-align: center;
+        z-index: 10;
+      }
+
+      /* Responsive Design */
+      :root {
+        --dot-size: 25px;
+        --flash-speed: 1s;
+        --scale: 5;
+      }
+
+      @media (max-width: 1200px) {
+        :root {
+          --dot-size: 20px;
+          --flash-speed: 1s;
+          --scale: 4;
+        }
+      }
+
+      @media (max-width: 800px) {
+        :root {
+          --dot-size: 15px;
+          --flash-speed: 1s;
+          --scale: 3.5;
+        }
+      }
+
+      @media (max-width: 500px) {
+        :root {
+          --dot-size: 12px;
+          --flash-speed: 1s;
+          --scale: 3;
+        }
+      }
+
+      @media (max-width: 350px) {
+        :root {
+          --dot-size: 10px;
+          --flash-speed: 1s;
+          --scale: 2.8;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Input Section -->
+    <div class="input-section" id="inputSection">
+      <input
+        type="text"
+        id="textInput"
+        placeholder="Enter your name"
+        maxlength="10"
+        autofocus
+      />
+      <div>
+        <button id="submitBtn">Display</button>
+        <button id="waveBtn">Start Wave</button>
+      </div>
+    </div>
+
+    <!-- Reset Button -->
+    <button class="reset-button" id="resetBtn">Reset</button>
+
+    <!-- Display Area -->
+    <div class="display-area">
+      <div id="ledDisplay" class="led-display"></div>
+    </div>
+
+    <!-- Instructions Overlay -->
+    <div class="instructions">
+      Tap "Start Wave" and move your device to animate.<br />
+      Press "Reset" to enter a new name.
+    </div>
+
+    <script>
+      // Define the dot-matrix patterns for letters A-Z and space
+      const LETTERS = {
+        A: ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
+        B: ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
+        C: ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
+        D: ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
+        E: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+        F: ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
+        G: ["01110", "10001", "10000", "10111", "10001", "10001", "01110"],
+        H: ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
+        I: ["01110", "00100", "00100", "00100", "00100", "00100", "01110"],
+        J: ["00111", "00010", "00010", "00010", "10010", "10010", "01100"],
+        K: ["10001", "10010", "10100", "11000", "10100", "10010", "10001"],
+        L: ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
+        M: ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
+        N: ["10001", "10001", "11001", "10101", "10011", "10001", "10001"],
+        O: ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+        P: ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
+        Q: ["01110", "10001", "10001", "10001", "10101", "10010", "01101"],
+        R: ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
+        S: ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
+        T: ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
+        U: ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
+        V: ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
+        W: ["10001", "10001", "10001", "10101", "10101", "10101", "01010"],
+        X: ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
+        Y: ["10001", "10001", "01010", "00100", "00100", "00100", "00100"],
+        Z: ["11111", "00001", "00010", "00100", "01000", "10000", "11111"],
+        " ": ["00000", "00000", "00000", "00000", "00000", "00000", "00000"],
+      };
+
+      const ledDisplay = document.getElementById("ledDisplay");
+      const submitBtn = document.getElementById("submitBtn");
+      const waveBtn = document.getElementById("waveBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const inputSection = document.getElementById("inputSection");
+      let isWaving = false;
+
+      // Handle User Input Submission
+      submitBtn.addEventListener("click", () => {
+        const input = document.getElementById("textInput").value.toUpperCase();
+        if (input.length === 0) {
+          alert("Please enter a name or word.");
+          return;
+        }
+        generateDisplay(input);
+        // Hide input section and show reset button
+        inputSection.style.display = "none";
+        resetBtn.style.display = "block";
+      });
+
+      // Generate LED Display
+      function generateDisplay(text) {
+        ledDisplay.innerHTML = ""; // Clear previous display
+
+        for (let char of text) {
+          const pattern = LETTERS[char] || LETTERS[" "];
+          const letterDiv = document.createElement("div");
+          letterDiv.classList.add("letter");
+
+          for (let row of pattern) {
+            for (let bit of row) {
+              const dot = document.createElement("div");
+              dot.classList.add("dot");
+              if (bit === "1") {
+                dot.style.opacity = "1";
+              } else {
+                dot.style.opacity = "0";
+              }
+              letterDiv.appendChild(dot);
+            }
+          }
+
+          ledDisplay.appendChild(letterDiv);
+        }
+      }
+
+      // Handle Waving Animation
+      waveBtn.addEventListener("click", () => {
+        if (isWaving) {
+          stopWave();
+        } else {
+          startWave();
+        }
+      });
+
+      function startWave() {
+        isWaving = true;
+        waveBtn.textContent = "Stop Wave";
+        ledDisplay.classList.add("waving");
+
+        // Request device orientation permission for iOS 13+
+        if (
+          typeof DeviceOrientationEvent !== "undefined" &&
+          typeof DeviceOrientationEvent.requestPermission === "function"
+        ) {
+          DeviceOrientationEvent.requestPermission()
+            .then((permissionState) => {
+              if (permissionState === "granted") {
+                window.addEventListener("deviceorientation", handleOrientation);
+              } else {
+                alert("Permission to access device orientation was denied.");
+              }
+            })
+            .catch(console.error);
+        } else if (window.DeviceOrientationEvent) {
+          window.addEventListener("deviceorientation", handleOrientation);
+        } else {
+          // If not supported, fallback to manual waving
+          manualWave();
+        }
+      }
+
+      function stopWave() {
+        isWaving = false;
+        waveBtn.textContent = "Start Wave";
+        ledDisplay.classList.remove("waving");
+        window.removeEventListener("deviceorientation", handleOrientation);
+        cancelAnimationFrame(manualWaveRAF);
+        ledDisplay.style.transform = "translateX(0)";
+      }
+
+      // Device Orientation Handler
+      function handleOrientation(event) {
+        const gamma = event.gamma; // Left-right tilt in degrees, range [-90,90]
+        const maxTilt = 30; // Limit the tilt for animation
+        const tilt = Math.max(Math.min(gamma, maxTilt), -maxTilt);
+        const translateX = (tilt / maxTilt) * 150; // Translate up to ±150px
+        ledDisplay.style.transform = `translateX(${translateX}px)`;
+      }
+
+      // Manual Waving Fallback
+      let manualWaveRAF;
+      let manualWaveDirection = 1;
+      let manualWavePosition = 0;
+
+      function manualWave() {
+        function animate() {
+          if (!isWaving) return;
+          manualWavePosition += manualWaveDirection * 3;
+          if (manualWavePosition > 150 || manualWavePosition < -150) {
+            manualWaveDirection *= -1;
+          }
+          ledDisplay.style.transform = `translateX(${manualWavePosition}px)`;
+          manualWaveRAF = requestAnimationFrame(animate);
+        }
+        animate();
+      }
+
+      // Handle Reset
+      resetBtn.addEventListener("click", () => {
+        resetApp();
+      });
+
+      function resetApp() {
+        ledDisplay.innerHTML = "";
+        inputSection.style.display = "flex";
+        resetBtn.style.display = "none";
+        waveBtn.textContent = "Start Wave";
+        stopWave();
+        document.getElementById("textInput").value = "";
+        document.getElementById("textInput").focus();
+      }
+
+      // Optional: Allow tapping on the display to reset
+
+      ledDisplay.addEventListener("touchstart", () => {
+        if (isWaving) {
+          stopWave();
+        }
+        resetApp();
+      });
+    </script>
+  </body>
+</html>
