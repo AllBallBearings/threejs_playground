@@ -246,13 +246,13 @@
         // Update the gamma display for debugging
         gammaDisplay.textContent = `Gamma: ${gamma.toFixed(1)}°`;
 
-        if (gamma >= 80 && gamma <= 85) {
+        if (gamma >= 40 && gamma <= 45) {
           hideDisplay();
-        } else if (gamma < 80 && gamma > -80) {
+        } else if (gamma < -45) {
           renderLetter("C");
-        } else if (gamma < -80 && gamma >= -85) {
+        } else if (gamma <= -40 && gamma >= -45) {
           hideDisplay();
-        } else if (gamma > 85 || gamma < -85) {
+        } else if (gamma > 45) {
           renderLetter("T");
         } else {
           // Default to 'A' if within normal tilt range
