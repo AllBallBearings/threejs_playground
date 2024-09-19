@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LED Light Display Simulator</title>
+    <title>Dynamic Flashing LED Display</title>
     <style>
-      /* Reset and basic styles */
+      /* Reset and Basic Styles */
       * {
         box-sizing: border-box;
         margin: 0;
@@ -16,102 +16,37 @@
       body {
         height: 100%;
         width: 100%;
-        overflow: hidden;
-      }
-
-      body {
-        background-color: #000;
-        color: #fff;
-        font-family: Arial, sans-serif;
+        background-color: #000; /* Black background */
         display: flex;
         align-items: center;
         justify-content: center;
-        position: relative;
       }
 
-      /* Input Section */
-      .input-section {
-        position: absolute;
-        top: 10%;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        z-index: 10;
-        background: rgba(0, 0, 0, 0.8);
-        padding: 20px 30px;
-        border-radius: 15px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      /* LED Display Container */
+      .led-display {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        grid-template-rows: repeat(7, 1fr);
+        gap: 5%; /* Gap as a percentage for responsiveness */
+        width: 80vw; /* Occupies 80% of the viewport width */
+        max-width: 600px; /* Maximum width for larger screens */
+        aspect-ratio: 5 / 7; /* Maintains the grid's aspect ratio */
       }
 
-      .input-section input {
-        padding: 15px;
-        font-size: 1.5rem;
-        border: none;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        width: 250px;
-        text-align: center;
-        outline: none;
-        background-color: #222;
-        color: #fff;
-      }
-
-      .input-section button {
-        padding: 15px 30px;
-        font-size: 1.2rem;
-        border: none;
-        border-radius: 10px;
-        background-color: #28a745;
-        color: #fff;
-        cursor: pointer;
-        margin: 5px;
-        width: 150px;
-        transition: background-color 0.3s, transform 0.2s;
-      }
-
-      .input-section button:hover {
-        background-color: #218838;
-      }
-
-      .input-section button:active {
-        transform: scale(0.95);
-      }
-
-      /* Display Area */
-      .display-area {
+      /* Individual Dot */
+      .dot {
+        background-color: #0f0; /* Green color */
+        border-radius: 50%;
+        opacity: 0; /* Hidden by default */
         width: 100%;
         height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        position: relative;
+        transition: opacity 0.3s;
       }
 
-      .led-display {
-        display: flex;
-        gap: 80px;
-        transform: translateX(0);
-        transition: transform 0.5s ease-in-out;
-      }
-
-      .letter {
-        display: grid;
-        grid-template-columns: repeat(5, var(--dot-size));
-        grid-template-rows: repeat(7, var(--dot-size));
-        gap: calc(var(--dot-size) / 2);
-        transform: scale(var(--scale));
-      }
-
-      .dot {
-        width: var(--dot-size);
-        height: var(--dot-size);
-        background-color: #0f0;
-        border-radius: 50%;
-        opacity: 0;
-        animation: flash var(--flash-speed) infinite;
+      /* Active Dots */
+      .dot.active {
+        opacity: 1; /* Fully visible */
+        animation: flash 0.3s infinite; /* Flashing animation */
       }
 
       /* Flashing Animation */
@@ -123,236 +58,166 @@
         }
         25%,
         75% {
-          opacity: 0;
+          opacity: 0.3;
         }
       }
 
-      /* Waving Animation */
-      @keyframes wave {
-        0% {
-          transform: rotate(0deg);
-        }
-        25% {
-          transform: rotate(10deg);
-        }
-        50% {
-          transform: rotate(0deg);
-        }
-        75% {
-          transform: rotate(-10deg);
-        }
-        100% {
-          transform: rotate(0deg);
-        }
-      }
-
-      .waving {
-        animation: wave 2s infinite;
-        transform-origin: center;
-      }
-
-      /* Reset Button */
-      .reset-button {
-        position: absolute;
-        top: 10%;
-        right: 5%;
-        background-color: #dc3545;
-        color: #fff;
-        border: none;
-        border-radius: 10px;
-        padding: 15px 25px;
-        font-size: 1rem;
-        cursor: pointer;
-        display: none;
-        transition: background-color 0.3s, transform 0.2s;
-      }
-
-      .reset-button:hover {
-        background-color: #c82333;
-      }
-
-      .reset-button:active {
-        transform: scale(0.95);
-      }
-
-      /* Instructions Overlay */
-      .instructions {
-        position: absolute;
-        bottom: 10%;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.7);
-        padding: 15px 25px;
-        border-radius: 10px;
-        font-size: 1rem;
-        color: #fff;
-        text-align: center;
-        z-index: 10;
-      }
-
-      /* Responsive Design */
-      :root {
-        --dot-size: 25px;
-        --flash-speed: 1s;
-        --scale: 5;
-      }
-
-      @media (max-width: 1200px) {
-        :root {
-          --dot-size: 20px;
-          --flash-speed: 1s;
-          --scale: 4;
-        }
-      }
-
-      @media (max-width: 800px) {
-        :root {
-          --dot-size: 15px;
-          --flash-speed: 1s;
-          --scale: 3.5;
-        }
-      }
-
-      @media (max-width: 500px) {
-        :root {
-          --dot-size: 12px;
-          --flash-speed: 1s;
-          --scale: 3;
-        }
-      }
-
-      @media (max-width: 350px) {
-        :root {
-          --dot-size: 10px;
-          --flash-speed: 1s;
-          --scale: 2.8;
+      /* Responsive Adjustments */
+      @media (max-width: 600px) {
+        .led-display {
+          width: 90vw; /* Occupies 90% of the viewport width on smaller screens */
+          gap: 3%; /* Smaller gaps for tighter grids */
         }
       }
     </style>
   </head>
   <body>
-    <!-- Input Section -->
-    <div class="input-section" id="inputSection">
-      <input
-        type="text"
-        id="textInput"
-        placeholder="Enter your name"
-        maxlength="10"
-        autofocus
-      />
-      <div>
-        <button id="submitBtn">Display</button>
-        <button id="waveBtn">Start Wave</button>
-      </div>
-    </div>
-
-    <!-- Reset Button -->
-    <button class="reset-button" id="resetBtn">Reset</button>
-
-    <!-- Display Area -->
-    <div class="display-area">
-      <div id="ledDisplay" class="led-display"></div>
-    </div>
-
-    <!-- Instructions Overlay -->
-    <div class="instructions">
-      Tap "Start Wave" and move your device to animate.<br />
-      Press "Reset" to enter a new name.
+    <div class="led-display" id="ledDisplay">
+      <!-- 5 columns x 7 rows = 35 dots -->
+      <!-- Dots are ordered row-wise from top-left to bottom-right -->
+      <!-- Total dots: 35 -->
+      <!-- Initialize with 'A' active dots -->
+      <!-- Row 1 -->
+      <div class="dot"></div>
+      <!-- 1 -->
+      <div class="dot active"></div>
+      <!-- 2 -->
+      <div class="dot active"></div>
+      <!-- 3 -->
+      <div class="dot active"></div>
+      <!-- 4 -->
+      <div class="dot"></div>
+      <!-- 5 -->
+      <!-- Row 2 -->
+      <div class="dot active"></div>
+      <!-- 6 -->
+      <div class="dot"></div>
+      <!-- 7 -->
+      <div class="dot"></div>
+      <!-- 8 -->
+      <div class="dot"></div>
+      <!-- 9 -->
+      <div class="dot active"></div>
+      <!-- 10 -->
+      <!-- Row 3 -->
+      <div class="dot active"></div>
+      <!-- 11 -->
+      <div class="dot"></div>
+      <!-- 12 -->
+      <div class="dot"></div>
+      <!-- 13 -->
+      <div class="dot"></div>
+      <!-- 14 -->
+      <div class="dot active"></div>
+      <!-- 15 -->
+      <!-- Row 4 -->
+      <div class="dot active"></div>
+      <!-- 16 -->
+      <div class="dot active"></div>
+      <!-- 17 -->
+      <div class="dot active"></div>
+      <!-- 18 -->
+      <div class="dot active"></div>
+      <!-- 19 -->
+      <div class="dot active"></div>
+      <!-- 20 -->
+      <!-- Row 5 -->
+      <div class="dot active"></div>
+      <!-- 21 -->
+      <div class="dot"></div>
+      <!-- 22 -->
+      <div class="dot"></div>
+      <!-- 23 -->
+      <div class="dot"></div>
+      <!-- 24 -->
+      <div class="dot active"></div>
+      <!-- 25 -->
+      <!-- Row 6 -->
+      <div class="dot active"></div>
+      <!-- 26 -->
+      <div class="dot"></div>
+      <!-- 27 -->
+      <div class="dot"></div>
+      <!-- 28 -->
+      <div class="dot"></div>
+      <!-- 29 -->
+      <div class="dot active"></div>
+      <!-- 30 -->
+      <!-- Row 7 -->
+      <div class="dot active"></div>
+      <!-- 31 -->
+      <div class="dot"></div>
+      <!-- 32 -->
+      <div class="dot"></div>
+      <!-- 33 -->
+      <div class="dot"></div>
+      <!-- 34 -->
+      <div class="dot active"></div>
+      <!-- 35 -->
     </div>
 
     <script>
-      // Define the dot-matrix patterns for letters A-Z and space
+      // Define the dot-matrix patterns for letters A, C, T
       const LETTERS = {
         A: ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
-        B: ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
         C: ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
-        D: ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
-        E: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
-        F: ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
-        G: ["01110", "10001", "10000", "10111", "10001", "10001", "01110"],
-        H: ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
-        I: ["01110", "00100", "00100", "00100", "00100", "00100", "01110"],
-        J: ["00111", "00010", "00010", "00010", "10010", "10010", "01100"],
-        K: ["10001", "10010", "10100", "11000", "10100", "10010", "10001"],
-        L: ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
-        M: ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
-        N: ["10001", "10001", "11001", "10101", "10011", "10001", "10001"],
-        O: ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
-        P: ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
-        Q: ["01110", "10001", "10001", "10001", "10101", "10010", "01101"],
-        R: ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
-        S: ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
         T: ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
-        U: ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
-        V: ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
-        W: ["10001", "10001", "10001", "10101", "10101", "10101", "01010"],
-        X: ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
-        Y: ["10001", "10001", "01010", "00100", "00100", "00100", "00100"],
-        Z: ["11111", "00001", "00010", "00100", "01000", "10000", "11111"],
-        " ": ["00000", "00000", "00000", "00000", "00000", "00000", "00000"],
       };
 
       const ledDisplay = document.getElementById("ledDisplay");
-      const submitBtn = document.getElementById("submitBtn");
-      const waveBtn = document.getElementById("waveBtn");
-      const resetBtn = document.getElementById("resetBtn");
-      const inputSection = document.getElementById("inputSection");
-      let isWaving = false;
+      const totalDots = 35; // 5 columns x 7 rows
 
-      // Handle User Input Submission
-      submitBtn.addEventListener("click", () => {
-        const input = document.getElementById("textInput").value.toUpperCase();
-        if (input.length === 0) {
-          alert("Please enter a name or word.");
-          return;
-        }
-        generateDisplay(input);
-        // Hide input section and show reset button
-        inputSection.style.display = "none";
-        resetBtn.style.display = "block";
-      });
-
-      // Generate LED Display
-      function generateDisplay(text) {
-        ledDisplay.innerHTML = ""; // Clear previous display
-
-        for (let char of text) {
-          const pattern = LETTERS[char] || LETTERS[" "];
-          const letterDiv = document.createElement("div");
-          letterDiv.classList.add("letter");
-
-          for (let row of pattern) {
-            for (let bit of row) {
-              const dot = document.createElement("div");
-              dot.classList.add("dot");
-              if (bit === "1") {
-                dot.style.opacity = "1";
-              } else {
-                dot.style.opacity = "0";
-              }
-              letterDiv.appendChild(dot);
-            }
-          }
-
-          ledDisplay.appendChild(letterDiv);
+      // Function to clear all active dots
+      function clearDots() {
+        for (let i = 0; i < totalDots; i++) {
+          ledDisplay.children[i].classList.remove("active");
         }
       }
 
-      // Handle Waving Animation
-      waveBtn.addEventListener("click", () => {
-        if (isWaving) {
-          stopWave();
-        } else {
-          startWave();
+      // Function to render a specific letter
+      function renderLetter(letter) {
+        clearDots();
+        const pattern = LETTERS[letter];
+        if (!pattern) return;
+
+        for (let row = 0; row < 7; row++) {
+          for (let col = 0; col < 5; col++) {
+            const index = row * 5 + col;
+            if (pattern[row][col] === "1") {
+              ledDisplay.children[index].classList.add("active");
+            }
+          }
         }
-      });
+      }
 
-      function startWave() {
-        isWaving = true;
-        waveBtn.textContent = "Stop Wave";
-        ledDisplay.classList.add("waving");
+      // Function to hide the display (all dots off)
+      function hideDisplay() {
+        clearDots();
+      }
 
-        // Request device orientation permission for iOS 13+
+      // Function to handle device orientation
+      function handleOrientation(event) {
+        const beta = event.beta; // Left-right tilt in degrees, range [-180,180]
+        // console.log('Beta:', beta); // For debugging
+
+        if (beta >= 80 && beta <= 85) {
+          hideDisplay();
+        } else if (beta < 80) {
+          renderLetter("C");
+        } else if (beta >= 85 && beta < 95) {
+          renderLetter("A");
+        } else if (beta >= 95 && beta <= 100) {
+          hideDisplay();
+        } else if (beta > 100) {
+          renderLetter("T");
+        }
+      }
+
+      // Initialize with 'A'
+      renderLetter("A");
+
+      // Request device orientation permission for iOS 13+
+      function initOrientation() {
         if (
           typeof DeviceOrientationEvent !== "undefined" &&
           typeof DeviceOrientationEvent.requestPermission === "function"
@@ -369,70 +234,70 @@
         } else if (window.DeviceOrientationEvent) {
           window.addEventListener("deviceorientation", handleOrientation);
         } else {
-          // If not supported, fallback to manual waving
-          manualWave();
+          alert("Device Orientation not supported.");
         }
       }
 
-      function stopWave() {
-        isWaving = false;
-        waveBtn.textContent = "Start Wave";
-        ledDisplay.classList.remove("waving");
-        window.removeEventListener("deviceorientation", handleOrientation);
-        cancelAnimationFrame(manualWaveRAF);
-        ledDisplay.style.transform = "translateX(0)";
-      }
+      // Add a button to request orientation permissions on iOS if necessary
+      if (
+        typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function"
+      ) {
+        // Create a button
+        const permissionButton = document.createElement("button");
+        permissionButton.textContent = "Enable Motion Access";
+        permissionButton.style.position = "absolute";
+        permissionButton.style.top = "20px";
+        permissionButton.style.left = "50%";
+        permissionButton.style.transform = "translateX(-50%)";
+        permissionButton.style.padding = "10px 20px";
+        permissionButton.style.fontSize = "16px";
+        permissionButton.style.border = "none";
+        permissionButton.style.borderRadius = "5px";
+        permissionButton.style.backgroundColor = "#28a745";
+        permissionButton.style.color = "#fff";
+        permissionButton.style.cursor = "pointer";
+        permissionButton.style.zIndex = "1000";
+        permissionButton.style.display = "none"; // Initially hidden
 
-      // Device Orientation Handler
-      function handleOrientation(event) {
-        const gamma = event.gamma; // Left-right tilt in degrees, range [-90,90]
-        const maxTilt = 30; // Limit the tilt for animation
-        const tilt = Math.max(Math.min(gamma, maxTilt), -maxTilt);
-        const translateX = (tilt / maxTilt) * 150; // Translate up to ±150px
-        ledDisplay.style.transform = `translateX(${translateX}px)`;
-      }
+        // Check if permission is needed
+        window.addEventListener("DOMContentLoaded", () => {
+          // Some browsers require a user interaction to start listening
+          window.addEventListener(
+            "click",
+            () => {
+              permissionButton.style.display = "none";
+              initOrientation();
+            },
+            { once: true }
+          );
 
-      // Manual Waving Fallback
-      let manualWaveRAF;
-      let manualWaveDirection = 1;
-      let manualWavePosition = 0;
-
-      function manualWave() {
-        function animate() {
-          if (!isWaving) return;
-          manualWavePosition += manualWaveDirection * 3;
-          if (manualWavePosition > 150 || manualWavePosition < -150) {
-            manualWaveDirection *= -1;
+          // Show the button if not already granted
+          if (
+            typeof DeviceOrientationEvent !== "undefined" &&
+            typeof DeviceOrientationEvent.requestPermission === "function"
+          ) {
+            DeviceOrientationEvent.requestPermission()
+              .then((permissionState) => {
+                if (permissionState === "granted") {
+                  initOrientation();
+                } else {
+                  // Show the button to request permission on user interaction
+                  permissionButton.style.display = "block";
+                }
+              })
+              .catch(() => {
+                // Show the button to request permission on user interaction
+                permissionButton.style.display = "block";
+              });
           }
-          ledDisplay.style.transform = `translateX(${manualWavePosition}px)`;
-          manualWaveRAF = requestAnimationFrame(animate);
-        }
-        animate();
+        });
+
+        document.body.appendChild(permissionButton);
+      } else {
+        // If no permission is needed or supported, initialize orientation
+        window.addEventListener("DOMContentLoaded", initOrientation);
       }
-
-      // Handle Reset
-      resetBtn.addEventListener("click", () => {
-        resetApp();
-      });
-
-      function resetApp() {
-        ledDisplay.innerHTML = "";
-        inputSection.style.display = "flex";
-        resetBtn.style.display = "none";
-        waveBtn.textContent = "Start Wave";
-        stopWave();
-        document.getElementById("textInput").value = "";
-        document.getElementById("textInput").focus();
-      }
-
-      // Optional: Allow tapping on the display to reset
-
-      ledDisplay.addEventListener("touchstart", () => {
-        if (isWaving) {
-          stopWave();
-        }
-        resetApp();
-      });
     </script>
   </body>
 </html>
