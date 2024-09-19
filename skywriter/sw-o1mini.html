@@ -20,6 +20,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
       }
 
       /* LED Display Container */
@@ -69,9 +70,51 @@
           gap: 3%; /* Smaller gaps for tighter grids */
         }
       }
+
+      /* Debugging Display (Optional) */
+      #gammaDisplay {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #fff;
+        font-size: 18px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
+        border-radius: 5px;
+        z-index: 1000;
+      }
+
+      /* Permission Button for iOS (If Needed) */
+      #permissionButton {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 15px 25px;
+        font-size: 18px;
+        border: none;
+        border-radius: 10px;
+        background-color: #28a745;
+        color: #fff;
+        cursor: pointer;
+        display: none; /* Initially hidden */
+        z-index: 1000;
+      }
+
+      #permissionButton.show {
+        display: block;
+      }
     </style>
   </head>
   <body>
+    <!-- Debugging Display -->
+    <div id="gammaDisplay">Gamma: 0°</div>
+
+    <!-- Permission Button for iOS Devices -->
+    <button id="permissionButton">Enable Motion Access</button>
+
+    <!-- LED Display Container -->
     <div class="led-display" id="ledDisplay">
       <!-- 5 columns x 7 rows = 35 dots -->
       <!-- Dots are ordered row-wise from top-left to bottom-right -->
@@ -166,6 +209,8 @@
 
       const ledDisplay = document.getElementById("ledDisplay");
       const totalDots = 35; // 5 columns x 7 rows
+      const gammaDisplay = document.getElementById("gammaDisplay");
+      const permissionButton = document.getElementById("permissionButton");
 
       // Function to clear all active dots
       function clearDots() {
@@ -197,19 +242,21 @@
 
       // Function to handle device orientation
       function handleOrientation(event) {
-        const beta = event.beta; // Left-right tilt in degrees, range [-180,180]
-        // console.log('Beta:', beta); // For debugging
+        const gamma = event.gamma; // Left-right tilt in degrees, range [-90,90]
+        // Update the gamma display for debugging
+        gammaDisplay.textContent = `Gamma: ${gamma.toFixed(1)}°`;
 
-        if (beta >= 80 && beta <= 85) {
+        if (gamma >= 80 && gamma <= 85) {
           hideDisplay();
-        } else if (beta < 80) {
+        } else if (gamma < 80 && gamma > -80) {
           renderLetter("C");
-        } else if (beta >= 85 && beta < 95) {
-          renderLetter("A");
-        } else if (beta >= 95 && beta <= 100) {
+        } else if (gamma < -80 && gamma >= -85) {
           hideDisplay();
-        } else if (beta > 100) {
+        } else if (gamma > 85 || gamma < -85) {
           renderLetter("T");
+        } else {
+          // Default to 'A' if within normal tilt range
+          renderLetter("A");
         }
       }
 
@@ -222,82 +269,33 @@
           typeof DeviceOrientationEvent !== "undefined" &&
           typeof DeviceOrientationEvent.requestPermission === "function"
         ) {
-          DeviceOrientationEvent.requestPermission()
-            .then((permissionState) => {
-              if (permissionState === "granted") {
-                window.addEventListener("deviceorientation", handleOrientation);
-              } else {
-                alert("Permission to access device orientation was denied.");
-              }
-            })
-            .catch(console.error);
-        } else if (window.DeviceOrientationEvent) {
-          window.addEventListener("deviceorientation", handleOrientation);
-        } else {
-          alert("Device Orientation not supported.");
-        }
-      }
-
-      // Add a button to request orientation permissions on iOS if necessary
-      if (
-        typeof DeviceOrientationEvent !== "undefined" &&
-        typeof DeviceOrientationEvent.requestPermission === "function"
-      ) {
-        // Create a button
-        const permissionButton = document.createElement("button");
-        permissionButton.textContent = "Enable Motion Access";
-        permissionButton.style.position = "absolute";
-        permissionButton.style.top = "20px";
-        permissionButton.style.left = "50%";
-        permissionButton.style.transform = "translateX(-50%)";
-        permissionButton.style.padding = "10px 20px";
-        permissionButton.style.fontSize = "16px";
-        permissionButton.style.border = "none";
-        permissionButton.style.borderRadius = "5px";
-        permissionButton.style.backgroundColor = "#28a745";
-        permissionButton.style.color = "#fff";
-        permissionButton.style.cursor = "pointer";
-        permissionButton.style.zIndex = "1000";
-        permissionButton.style.display = "none"; // Initially hidden
-
-        // Check if permission is needed
-        window.addEventListener("DOMContentLoaded", () => {
-          // Some browsers require a user interaction to start listening
-          window.addEventListener(
-            "click",
-            () => {
-              permissionButton.style.display = "none";
-              initOrientation();
-            },
-            { once: true }
-          );
-
-          // Show the button if not already granted
-          if (
-            typeof DeviceOrientationEvent !== "undefined" &&
-            typeof DeviceOrientationEvent.requestPermission === "function"
-          ) {
+          // For iOS 13+ devices
+          permissionButton.classList.add("show");
+          permissionButton.addEventListener("click", () => {
             DeviceOrientationEvent.requestPermission()
               .then((permissionState) => {
                 if (permissionState === "granted") {
-                  initOrientation();
+                  window.addEventListener(
+                    "deviceorientation",
+                    handleOrientation
+                  );
+                  permissionButton.style.display = "none";
                 } else {
-                  // Show the button to request permission on user interaction
-                  permissionButton.style.display = "block";
+                  alert("Permission to access device orientation was denied.");
                 }
               })
-              .catch(() => {
-                // Show the button to request permission on user interaction
-                permissionButton.style.display = "block";
-              });
-          }
-        });
-
-        document.body.appendChild(permissionButton);
-      } else {
-        // If no permission is needed or supported, initialize orientation
-        window.addEventListener("DOMContentLoaded", initOrientation);
+              .catch(console.error);
+          });
+        } else if (window.DeviceOrientationEvent) {
+          // For non-iOS devices or older iOS versions
+          window.addEventListener("deviceorientation", handleOrientation);
+        } else {
+          alert("Device Orientation not supported on your device/browser.");
+        }
       }
+
+      // Initialize orientation on DOMContentLoaded
+      window.addEventListener("DOMContentLoaded", initOrientation);
     </script>
   </body>
 </html>
