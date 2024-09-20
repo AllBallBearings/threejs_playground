@@ -246,15 +246,15 @@
         // Update the gamma display for debugging
         gammaDisplay.textContent = `Gamma: ${gamma.toFixed(1)}°`;
 
-        if (gamma > 10 && gamma <= 75) {
+        if (gamma > 20 && gamma <= 70) {
           hideDisplay();
-        } else if (gamma >= -85 && gamma < -75) {
+        } else if (gamma >= -85 && gamma < -70) {
           renderLetter("C");
-        } else if (gamma < -10 && gamma >= -75) {
+        } else if (gamma < -20 && gamma >= -70) {
           hideDisplay();
-        } else if (gamma > 75 && gamma <= 85) {
+        } else if (gamma > 70 && gamma <= 85) {
           renderLetter("T");
-        } else if (gamma >= -10 && gamma <= 10) {
+        } else if (gamma >= -10 && gamma <= 20) {
           renderLetter("A");
         } else {
           hideDisplay();
