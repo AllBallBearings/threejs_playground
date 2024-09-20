@@ -22,7 +22,7 @@
       #viewport {
         width: 100%;
         height: 100%;
-        background-image: url("cat-emoji.jpg"); /* Replace with your image */
+        background-image: url("https://www.shutterstock.com/shutterstock/photos/2000070206/display_1500/stock-vector-cat-home-farm-animals-emoji-illustration-face-vector-design-art-flat-vector-dog-emoji-cat-face-2000070206.jpg"); /* Replace with your image */
         background-size: 2550px 3300px; /* Adjust to your image dimensions */
         background-repeat: no-repeat;
         background-position: center center;
@@ -46,13 +46,11 @@
   </head>
   <body>
     <div id="viewport"></div>
-    <div id="loading">
-      Please allow access to motion sensors and rotate your device.
-    </div>
+    <div id="loading">Loading...</div>
 
     <script>
-      const viewport = document.getElementById('viewport');
-      const loading = document.getElementById('loading');
+      const viewport = document.getElementById("viewport");
+      const loading = document.getElementById("loading");
 
       // Initialize variables for touch controls
       let startX = 0;
@@ -60,40 +58,40 @@
       let posX = 50;
       let posY = 50;
 
+      // Enable touch controls by default
+      enableTouchControls();
+
       // Check for DeviceOrientationEvent support
       if (window.DeviceOrientationEvent) {
         // For iOS 13+ devices
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        if (typeof DeviceOrientationEvent.requestPermission === "function") {
           DeviceOrientationEvent.requestPermission()
-            .then(permissionState => {
-              if (permissionState === 'granted') {
+            .then((permissionState) => {
+              if (permissionState === "granted") {
                 init();
               } else {
-                loading.innerText = 'Permission denied. Please allow access to motion sensors.';
-                enableTouchControls();
+                console.log("Motion sensor permission denied.");
               }
             })
             .catch(() => {
-              loading.innerText = 'Error requesting permission.';
-              enableTouchControls();
+              console.log("Error requesting motion sensor permission.");
             });
         } else {
           // For other devices
           init();
         }
       } else {
-        loading.innerText = 'DeviceOrientationEvent is not supported on this device.';
-        enableTouchControls();
+        console.log("DeviceOrientationEvent is not supported on this device.");
       }
 
       function init() {
-        window.addEventListener('deviceorientation', handleOrientation);
-        loading.style.display = 'none';
+        window.addEventListener("deviceorientation", handleOrientation);
+        loading.style.display = "none";
       }
 
       function handleOrientation(event) {
         const gamma = event.gamma; // Left to right [-90, 90]
-        const beta = event.beta;   // Front to back [-180, 180]
+        const beta = event.beta; // Front to back [-180, 180]
 
         // Limit the angles to a range
         const maxGamma = 45; // Adjust sensitivity
@@ -106,13 +104,12 @@
         posX = ((x + maxGamma) / (2 * maxGamma)) * 100;
         posY = ((y + maxBeta) / (2 * maxBeta)) * 100;
 
-        viewport.style.backgroundPosition = \`\${posX}% \${posY}%\`;
+        viewport.style.backgroundPosition = `${posX}% ${posY}%`;
       }
 
       function enableTouchControls() {
-        loading.innerText += '\nUsing touch controls.';
-        viewport.addEventListener('touchmove', handleTouchMove);
-        loading.style.display = 'none';
+        viewport.addEventListener("touchmove", handleTouchMove);
+        loading.style.display = "none";
       }
 
       function handleTouchMove(event) {
@@ -129,14 +126,14 @@
         const deltaY = touch.pageY - startY;
 
         // Adjust sensitivity as needed
-        posX -= deltaX / window.innerWidth * 100;
-        posY -= deltaY / window.innerHeight * 100;
+        posX -= (deltaX / window.innerWidth) * 100;
+        posY -= (deltaY / window.innerHeight) * 100;
 
         // Clamp values between 0% and 100%
         posX = Math.max(0, Math.min(100, posX));
         posY = Math.max(0, Math.min(100, posY));
 
-        viewport.style.backgroundPosition = \`\${posX}% \${posY}%\`;
+        viewport.style.backgroundPosition = `${posX}% ${posY}%`;
 
         startX = touch.pageX;
         startY = touch.pageY;
