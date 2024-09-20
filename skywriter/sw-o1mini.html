@@ -256,13 +256,13 @@
         // Only respond to gamma if beta is within the threshold
         if (Math.abs(beta) <= betaThreshold) {
           // Your modified gamma conditions
-          if (gamma > 20 && gamma <= 70) {
+          if (gamma > 20 && gamma <= 45) {
             hideDisplay();
-          } else if (gamma >= -85 && gamma < -70) {
+          } else if (gamma >= -65 && gamma < -45) {
             renderLetter("C");
-          } else if (gamma < -10 && gamma >= -70) {
+          } else if (gamma < -10 && gamma >= -45) {
             hideDisplay();
-          } else if (gamma > 70 && gamma <= 85) {
+          } else if (gamma > 45 && gamma <= 65) {
             renderLetter("T");
           } else if (gamma >= -20 && gamma <= 20) {
             renderLetter("A");
