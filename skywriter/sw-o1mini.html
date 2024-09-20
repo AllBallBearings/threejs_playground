@@ -109,7 +109,7 @@
   </head>
   <body>
     <!-- Debugging Display -->
-    <div id="gammaDisplay">Gamma: 0°</div>
+    <div id="gammaDisplay">Gamma: 0° | Beta: 0°</div>
 
     <!-- Permission Button for iOS Devices -->
     <button id="permissionButton">Enable Motion Access</button>
@@ -243,20 +243,34 @@
       // Function to handle device orientation
       function handleOrientation(event) {
         const gamma = event.gamma; // Left-right tilt in degrees, range [-90,90]
-        // Update the gamma display for debugging
-        gammaDisplay.textContent = `Gamma: ${gamma.toFixed(1)}°`;
+        const beta = event.beta; // Front-back tilt in degrees, range [-180,180]
 
-        if (gamma > 20 && gamma <= 70) {
-          hideDisplay();
-        } else if (gamma >= -85 && gamma < -70) {
-          renderLetter("C");
-        } else if (gamma < -20 && gamma >= -70) {
-          hideDisplay();
-        } else if (gamma > 70 && gamma <= 85) {
-          renderLetter("T");
-        } else if (gamma >= -10 && gamma <= 20) {
-          renderLetter("A");
+        // Update the gamma and beta display for debugging
+        gammaDisplay.textContent = `Gamma: ${gamma.toFixed(
+          1
+        )}° | Beta: ${beta.toFixed(1)}°`;
+
+        // Define thresholds
+        const betaThreshold = 10; // Degrees; adjust as needed
+
+        // Only respond to gamma if beta is within the threshold
+        if (Math.abs(beta) <= betaThreshold) {
+          // Your modified gamma conditions
+          if (gamma > 20 && gamma <= 70) {
+            hideDisplay();
+          } else if (gamma >= -85 && gamma < -70) {
+            renderLetter("C");
+          } else if (gamma < -10 && gamma >= -70) {
+            hideDisplay();
+          } else if (gamma > 70 && gamma <= 85) {
+            renderLetter("T");
+          } else if (gamma >= -20 && gamma <= 20) {
+            renderLetter("A");
+          } else {
+            hideDisplay();
+          }
         } else {
+          // When beta is outside the threshold, hide the display regardless of gamma
           hideDisplay();
         }
       }
