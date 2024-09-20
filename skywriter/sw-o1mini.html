@@ -41,15 +41,14 @@
         grid-template-columns: repeat(5, 1fr);
         grid-template-rows: repeat(7, 1fr);
         gap: 5%; /* Gap as a percentage for responsiveness */
-        width: 100vw; /* Occupies full viewport width */
-        height: 100vh; /* Occupies full viewport height */
-        max-width: none; /* Remove max-width */
-        aspect-ratio: none; /* Remove aspect ratio */
+        width: 80vw; /* Occupies 80% of the viewport width */
+        max-width: 600px; /* Maximum width for larger screens */
+        aspect-ratio: 5 / 7; /* Maintains the grid's aspect ratio */
       }
 
       /* Individual Dot */
       .dot {
-        background-color: #66e6ff; /* Green color */
+        background-color: #66e6ff; /* Blue color */
         border-radius: 50%;
         opacity: 0; /* Hidden by default */
         width: 100%;
@@ -79,8 +78,7 @@
       /* Responsive Adjustments */
       @media (max-width: 600px) {
         .led-display {
-          width: 100vw; /* Adjusted to 100vw for consistency */
-          height: 100vh; /* Adjusted to 100vh */
+          width: 90vw; /* Occupies 90% of the viewport width on smaller screens */
           gap: 3%; /* Smaller gaps for tighter grids */
         }
       }
@@ -97,7 +95,7 @@
         padding: 5px 10px;
         border-radius: 5px;
         z-index: 1000;
-        display: none; /* Hide by default */
+        display: block; /* Ensure it's visible */
       }
 
       /* Permission Button for iOS (If Needed) */
@@ -133,7 +131,7 @@
         padding: 10px 15px;
         border-radius: 5px;
         z-index: 1000;
-        display: none; /* Hide by default */
+        display: block; /* Ensure it's visible */
       }
 
       /* Fullscreen Button */
@@ -149,6 +147,7 @@
         color: #fff;
         cursor: pointer;
         z-index: 1001;
+        display: block; /* Ensure it's visible */
       }
 
       #fullscreenButton.show {
@@ -313,13 +312,13 @@
         const betaThreshold = 30; // Degrees; allows up to 30° forward/backward tilt
 
         // Only respond to gamma if beta is within the threshold
-        if (Math.abs(beta) >= 60 && Math.abs(beta) <= 120) {
+        if (Math.abs(beta) >= betaThreshold) {
           // Refined gamma conditions
-          if (gamma >= -25 && gamma <= 25) {
+          if (gamma >= -20 && gamma <= 20) {
             renderLetter("A");
-          } else if (gamma >= -80 && gamma <= -55) {
+          } else if (gamma >= -80 && gamma <= -60) {
             renderLetter("C");
-          } else if (gamma >= 55 && gamma <= 80) {
+          } else if (gamma >= 60 && gamma <= 80) {
             renderLetter("T");
           } else {
             hideDisplay();
@@ -351,7 +350,7 @@
                   );
                   permissionButton.style.display = "none";
                   instructions.style.display = "block"; // Show instructions after granting permission
-                  gammaDisplay.style.display = "none"; // Hide debugging display
+                  gammaDisplay.style.display = "block"; // Show debugging display
                 } else {
                   alert("Permission to access device orientation was denied.");
                 }
@@ -362,7 +361,7 @@
           // For non-iOS devices or older iOS versions
           window.addEventListener("deviceorientation", handleOrientation);
           instructions.style.display = "block"; // Show instructions
-          gammaDisplay.style.display = "none"; // Hide debugging display
+          gammaDisplay.style.display = "block"; // Show debugging display
         } else {
           alert("Device Orientation not supported on your device/browser.");
         }
