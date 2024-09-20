@@ -105,6 +105,20 @@
       #permissionButton.show {
         display: block;
       }
+
+      /* Instructions (Optional) */
+      #instructions {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #fff;
+        font-size: 16px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px 15px;
+        border-radius: 5px;
+        z-index: 1000;
+      }
     </style>
   </head>
   <body>
@@ -113,6 +127,11 @@
 
     <!-- Permission Button for iOS Devices -->
     <button id="permissionButton">Enable Motion Access</button>
+
+    <!-- Instructions (Optional) -->
+    <div id="instructions">
+      Tilt your device side to side to display different letters.
+    </div>
 
     <!-- LED Display Container -->
     <div class="led-display" id="ledDisplay">
@@ -251,7 +270,7 @@
         )}° | Beta: ${beta.toFixed(1)}°`;
 
         // Define thresholds
-        const betaThreshold = 10; // Degrees; adjust as needed
+        const betaThreshold = 30; // Degrees; allows up to 30° forward/backward tilt
 
         // Only respond to gamma if beta is within the threshold
         if (Math.abs(beta) <= betaThreshold) {
@@ -260,7 +279,7 @@
             hideDisplay();
           } else if (gamma >= -65 && gamma < -45) {
             renderLetter("C");
-          } else if (gamma < -10 && gamma >= -45) {
+          } else if (gamma < -20 && gamma >= -45) {
             hideDisplay();
           } else if (gamma > 45 && gamma <= 65) {
             renderLetter("T");
