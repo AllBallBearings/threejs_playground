@@ -248,15 +248,16 @@
 
         if (gamma >= 50 && gamma <= 60) {
           hideDisplay();
-        } else if (gamma < -60) {
+        } else if (gamma >= -70 && gamma < -60) {
           renderLetter("C");
         } else if (gamma <= -50 && gamma >= -60) {
           hideDisplay();
-        } else if (gamma > 60) {
+        } else if (gamma > 60 && gamma <= 70) {
           renderLetter("T");
-        } else {
-          // Default to 'A' if within normal tilt range
+        } else if (gamma >= -5 && gamma <= 5) {
           renderLetter("A");
+        } else {
+          hideDisplay();
         }
       }
 
