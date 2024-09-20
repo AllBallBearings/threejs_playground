@@ -273,7 +273,7 @@
         const betaThreshold = 30; // Degrees; allows up to 30° forward/backward tilt
 
         // Only respond to gamma if beta is within the threshold
-        if (Math.abs(beta) <= betaThreshold) {
+        if (Math.abs(beta) >= 60 && Math.abs(beta) <= 110) {
           // Your modified gamma conditions
           if (gamma > 20 && gamma <= 45) {
             hideDisplay();
