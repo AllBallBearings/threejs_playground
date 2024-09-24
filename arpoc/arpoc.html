@@ -2,35 +2,85 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>AR Gold Coin</title>
+    <title>Location-Based AR Gold Coin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
-      /* Basic styles for the permission modal */
+      /* Styles for the permission modal and AR container */
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
       #permission-modal {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(0, 0, 0, 0.85);
         color: #fff;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        text-align: center;
+        padding: 20px;
+        box-sizing: border-box;
         z-index: 1000;
       }
+      #permission-modal h1 {
+        margin-bottom: 20px;
+        font-size: 28px;
+      }
+      #permission-modal p {
+        font-size: 18px;
+        margin-bottom: 30px;
+        max-width: 80%;
+      }
       #permission-modal button {
-        padding: 10px 20px;
-        margin-top: 20px;
-        font-size: 16px;
+        padding: 12px 24px;
+        font-size: 18px;
+        background-color: #007bff;
+        border: none;
+        border-radius: 5px;
+        color: #fff;
         cursor: pointer;
+      }
+      #permission-modal button:hover {
+        background-color: #0056b3;
       }
       #ar-container {
         display: none; /* Hidden until permissions are granted */
         width: 100%;
         height: 100vh;
-        overflow: hidden;
+        position: relative;
+      }
+      #error-message {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: red;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 20px;
+        border-radius: 10px;
+        display: none;
+        z-index: 1001;
+        max-width: 80%;
+        text-align: center;
+      }
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
+        font-size: 20px;
+        z-index: 500;
       }
     </style>
   </head>
@@ -39,54 +89,119 @@
     <div id="permission-modal">
       <h1>Welcome to AR Gold Coin</h1>
       <p>
-        To provide an immersive AR experience, we need access to your camera and
-        location.
+        To provide an immersive AR experience, we need access to your location
+        and camera.
       </p>
       <button id="start-button">Start AR Experience</button>
     </div>
 
+    <!-- Error Message -->
+    <div id="error-message"></div>
+
     <!-- AR Container -->
     <div id="ar-container">
+      <div id="loading">Loading AR Experience...</div>
       <!-- AR content will be injected here -->
     </div>
 
-    <!-- Include necessary scripts -->
+    <!-- Include Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Include ARButton.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/webxr/ARButton.js"></script>
 
     <script>
+      // Function to display error messages
+      function showError(message) {
+        const errorDiv = document.getElementById("error-message");
+        errorDiv.innerText = message;
+        errorDiv.style.display = "block";
+      }
+
+      // Function to hide error messages
+      function hideError() {
+        const errorDiv = document.getElementById("error-message");
+        errorDiv.style.display = "none";
+      }
+
+      // Function to display loading indicator
+      function showLoading() {
+        document.getElementById("loading").style.display = "block";
+      }
+
+      // Function to hide loading indicator
+      function hideLoading() {
+        document.getElementById("loading").style.display = "none";
+      }
+
       document
         .getElementById("start-button")
         .addEventListener("click", async () => {
+          hideError(); // Ensure no previous error is shown
           try {
-            // Request Camera Access
-            const cameraStream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: "environment" },
-              audio: false,
-            });
+            // First, request Geolocation Access
+            if (!navigator.geolocation) {
+              showError("Geolocation is not supported by your browser.");
+              return;
+            }
 
-            // Request Geolocation Access
+            // Inform the user that location access is being requested
+            showLoading();
+
             navigator.geolocation.getCurrentPosition(
-              (position) => {
-                // Permissions granted, hide modal and show AR container
-                document.getElementById("permission-modal").style.display =
-                  "none";
-                document.getElementById("ar-container").style.display = "block";
-                initializeAR(position);
+              async (position) => {
+                // Once geolocation is successful, request Camera Access
+                try {
+                  const cameraStream =
+                    await navigator.mediaDevices.getUserMedia({
+                      video: { facingMode: "environment" },
+                      audio: false,
+                    });
+
+                  // Permissions granted, hide modal and show AR container
+                  document.getElementById("permission-modal").style.display =
+                    "none";
+                  document.getElementById("ar-container").style.display =
+                    "block";
+                  hideLoading();
+
+                  // Initialize AR with the obtained position
+                  initializeAR(position);
+                } catch (cameraError) {
+                  hideLoading();
+                  // Handle Camera access denial
+                  showError("Camera access is required for the AR experience.");
+                  console.error("Camera access error:", cameraError);
+                }
               },
-              (error) => {
+              (geoError) => {
+                hideLoading();
                 // Handle Geolocation errors
-                showError(getGeolocationErrorMessage(error));
-                console.error(error);
+                showError(getGeolocationErrorMessage(geoError));
+                console.error("Geolocation error:", geoError);
               },
               { enableHighAccuracy: true }
             );
           } catch (err) {
-            // Handle Camera access denial
-            showError("Camera access is required for the AR experience.");
+            hideLoading();
+            // Handle unexpected errors
+            showError("An unexpected error occurred.");
             console.error(err);
           }
         });
+
+      function getGeolocationErrorMessage(error) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            return "Geolocation permission denied. Please enable location services to use this feature.";
+          case error.POSITION_UNAVAILABLE:
+            return "Location information is unavailable.";
+          case error.TIMEOUT:
+            return "The request to get your location timed out.";
+          default:
+            return "An unknown error occurred while retrieving your location.";
+        }
+      }
 
       function initializeAR(position) {
         // Initialize Three.js Scene
@@ -113,13 +228,21 @@
           .appendChild(renderer.domElement);
 
         // Add AR Button
-        document.body.appendChild(
-          THREE.ARButton.createButton(renderer, {
-            requiredFeatures: ["hit-test"],
-          })
-        );
+        try {
+          document.body.appendChild(
+            THREE.ARButton.createButton(renderer, {
+              requiredFeatures: ["hit-test"],
+            })
+          );
+        } catch (error) {
+          showError(
+            "Failed to create ARButton. Your browser might not support WebXR."
+          );
+          console.error(error);
+          return;
+        }
 
-        // Add a gold coin (cylinder)
+        // Create a gold coin (cylinder)
         const geometry = new THREE.CylinderGeometry(0.1, 0.1, 0.02, 32);
         const material = new THREE.MeshStandardMaterial({
           color: 0xffd700,
@@ -142,9 +265,6 @@
         scene.add(axesHelper);
 
         // Handle Hit Testing
-        const session = renderer.xr.getSession();
-
-        // Create a Hit Test Source
         let hitTestSource = null;
         let hitTestSourceRequested = false;
 
@@ -215,6 +335,7 @@
             alphaOffset = alpha;
             // For debugging
             console.log(`Alpha: ${alpha}`);
+            // You can use alphaOffset to adjust the coin's position based on device orientation if needed
           }
         }
 
@@ -241,24 +362,6 @@
 
         // Ensure the coin is visible initially
         coin.visible = false;
-      }
-
-      function showError(message) {
-        const modal = document.getElementById("permission-modal");
-        modal.innerHTML = `<h1>Error</h1><p>${message}</p>`;
-      }
-
-      function getGeolocationErrorMessage(error) {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            return "Geolocation permission denied. Please enable location services to use this feature.";
-          case error.POSITION_UNAVAILABLE:
-            return "Location information is unavailable.";
-          case error.TIMEOUT:
-            return "The request to get your location timed out.";
-          default:
-            return "An unknown error occurred while retrieving your location.";
-        }
       }
     </script>
   </body>
