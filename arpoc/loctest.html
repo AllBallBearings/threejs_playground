@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Geolocation Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      #location {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Geolocation Test</h1>
+    <button id="get-location">Get My Location</button>
+    <div id="location"></div>
+
+    <script>
+      document.getElementById("get-location").addEventListener("click", () => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+              document.getElementById(
+                "location"
+              ).innerText = `Latitude: ${lat}, Longitude: ${lon}`;
+            },
+            (error) => {
+              switch (error.code) {
+                case error.PERMISSION_DENIED:
+                  alert("User denied the request for Geolocation.");
+                  break;
+                case error.POSITION_UNAVAILABLE:
+                  alert("Location information is unavailable.");
+                  break;
+                case error.TIMEOUT:
+                  alert("The request to get user location timed out.");
+                  break;
+                case error.UNKNOWN_ERROR:
+                  alert("An unknown error occurred.");
+                  break;
+              }
+            },
+            { enableHighAccuracy: true }
+          );
+        } else {
+          alert("Geolocation is not supported by this browser.");
+        }
+      });
+    </script>
+  </body>
+</html>
