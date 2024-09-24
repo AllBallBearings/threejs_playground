@@ -2,70 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Location-Based AR Gold Coin</title>
+    <title>AR Gold Coin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
-      /* Styles for the permission modal and AR container */
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        width: 100%;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-      }
+      /* Basic styles for the permission modal */
       #permission-modal {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.9);
+        background: rgba(0, 0, 0, 0.8);
         color: #fff;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        text-align: center;
-        padding: 20px;
-        box-sizing: border-box;
         z-index: 1000;
       }
-      #permission-modal h1 {
-        margin-bottom: 20px;
-        font-size: 28px;
-      }
-      #permission-modal p {
-        font-size: 18px;
-        margin-bottom: 30px;
-      }
       #permission-modal button {
-        padding: 12px 24px;
-        font-size: 18px;
-        background-color: #28a745;
-        border: none;
-        border-radius: 5px;
-        color: #fff;
+        padding: 10px 20px;
+        margin-top: 20px;
+        font-size: 16px;
         cursor: pointer;
-      }
-      #permission-modal button:hover {
-        background-color: #218838;
       }
       #ar-container {
         display: none; /* Hidden until permissions are granted */
         width: 100%;
         height: 100vh;
-        position: relative;
-      }
-      #loading {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: #fff;
-        font-size: 20px;
-        z-index: 500;
+        overflow: hidden;
       }
     </style>
   </head>
@@ -82,14 +47,13 @@
 
     <!-- AR Container -->
     <div id="ar-container">
-      <div id="loading">Loading AR Experience...</div>
       <!-- AR content will be injected here -->
     </div>
 
     <!-- Include necessary scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Include WebXR Polyfill for broader browser support (optional) -->
-    <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/webxr/ARButton.js"></script>
+
     <script>
       document
         .getElementById("start-button")
@@ -100,7 +64,8 @@
               video: { facingMode: "environment" },
               audio: false,
             });
-            // If camera access is granted, proceed to request Geolocation
+
+            // Request Geolocation Access
             navigator.geolocation.getCurrentPosition(
               (position) => {
                 // Permissions granted, hide modal and show AR container
@@ -124,11 +89,10 @@
         });
 
       function initializeAR(position) {
-        const loading = document.getElementById("loading");
-
         // Initialize Three.js Scene
         const scene = new THREE.Scene();
 
+        // Initialize Camera
         const camera = new THREE.PerspectiveCamera(
           70,
           window.innerWidth / window.innerHeight,
@@ -137,6 +101,7 @@
         );
         scene.add(camera);
 
+        // Initialize Renderer
         const renderer = new THREE.WebGLRenderer({
           antialias: true,
           alpha: true,
@@ -147,60 +112,80 @@
           .getElementById("ar-container")
           .appendChild(renderer.domElement);
 
-        // Create a button to enter AR
+        // Add AR Button
         document.body.appendChild(
-          THREE.ARButton.createButton(renderer, { requiredFeatures: ["local"] })
+          THREE.ARButton.createButton(renderer, {
+            requiredFeatures: ["hit-test"],
+          })
         );
 
-        // Create 3D Object (Gold Coin)
-        const geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 32);
+        // Add a gold coin (cylinder)
+        const geometry = new THREE.CylinderGeometry(0.1, 0.1, 0.02, 32);
         const material = new THREE.MeshStandardMaterial({
           color: 0xffd700,
-          metalness: 0.8,
-          roughness: 0.2,
+          metalness: 1.0,
+          roughness: 0.5,
         });
         const coin = new THREE.Mesh(geometry, material);
         scene.add(coin);
 
-        // Add Axes Helper for Debugging
-        const axesHelper = new THREE.AxesHelper(1.5);
-        scene.add(axesHelper);
-
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
         scene.add(ambientLight);
 
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight.position.set(1, 1, 1).normalize();
         scene.add(directionalLight);
 
-        // Hide loading indicator once AR is ready
-        loading.style.display = "none";
+        // Axes Helper for Debugging
+        const axesHelper = new THREE.AxesHelper(1);
+        scene.add(axesHelper);
 
-        // Calculate target position based on GPS
-        const targetOffset = 1.524; // 5 feet in meters
-        let targetBearing = 0; // Degrees, adjust based on desired direction
+        // Handle Hit Testing
+        const session = renderer.xr.getSession();
 
-        // Convert bearing and distance to x, z offsets
-        function updateCoinPosition(alpha) {
-          const radians = (alpha || 0) * (Math.PI / 180);
-          const xOffset = targetOffset * Math.sin(radians);
-          const zOffset = targetOffset * Math.cos(radians);
-          coin.position.set(xOffset, 0, -zOffset);
-        }
+        // Create a Hit Test Source
+        let hitTestSource = null;
+        let hitTestSourceRequested = false;
 
-        // Initial position
-        updateCoinPosition(targetBearing);
+        // Animation Loop
+        renderer.setAnimationLoop((timestamp, frame) => {
+          if (frame) {
+            const referenceSpace = renderer.xr.getReferenceSpace();
+            const session = renderer.xr.getSession();
 
-        // Listen to device orientation to adjust bearing
-        function handleOrientation(event) {
-          let alpha = event.alpha; // 0 to 360 degrees
-          if (alpha !== null) {
-            updateCoinPosition(alpha);
+            if (hitTestSourceRequested === false) {
+              session.requestReferenceSpace("viewer").then((viewerSpace) => {
+                session
+                  .requestHitTestSource({ space: viewerSpace })
+                  .then((source) => {
+                    hitTestSource = source;
+                  });
+              });
+              hitTestSourceRequested = true;
+            }
+
+            if (hitTestSource) {
+              const hitTestResults = frame.getHitTestResults(hitTestSource);
+              if (hitTestResults.length > 0) {
+                const hit = hitTestResults[0];
+                const pose = hit.getPose(referenceSpace);
+                if (pose) {
+                  // Position the coin at the hit location
+                  coin.position.set(
+                    pose.transform.position.x,
+                    pose.transform.position.y,
+                    pose.transform.position.z
+                  );
+                  coin.visible = true;
+                }
+              }
+            }
           }
-        }
+          renderer.render(scene, camera);
+        });
 
-        // Request Device Orientation Permission for iOS 13+
+        // Request Device Orientation Permissions for iOS 13+
         if (typeof DeviceOrientationEvent.requestPermission === "function") {
           DeviceOrientationEvent.requestPermission()
             .then((permissionState) => {
@@ -212,7 +197,7 @@
                 );
               } else {
                 showError(
-                  "Device orientation permission denied. Unable to track direction."
+                  "Device orientation permission denied. The AR experience may not function correctly."
                 );
               }
             })
@@ -222,10 +207,40 @@
           window.addEventListener("deviceorientation", handleOrientation, true);
         }
 
-        // Render loop
-        renderer.setAnimationLoop(() => {
-          renderer.render(scene, camera);
-        });
+        let alphaOffset = 0;
+
+        function handleOrientation(event) {
+          const alpha = event.alpha; // 0 to 360 degrees
+          if (alpha !== null) {
+            alphaOffset = alpha;
+            // For debugging
+            console.log(`Alpha: ${alpha}`);
+          }
+        }
+
+        // Calculate Target Position Based on GPS
+        const userLat = position.coords.latitude;
+        const userLon = position.coords.longitude;
+        const distance = 1.524; // 5 feet in meters
+
+        // Function to calculate offset coordinates
+        function calculateOffset(lat, lon, distance) {
+          const R = 6378137; // Earth's mean radius in meters
+          const dLat = distance / R;
+          const dLon = distance / (R * Math.cos((Math.PI * lat) / 180));
+          return {
+            latitude: lat + (dLat * 180) / Math.PI,
+            longitude: lon + (dLon * 180) / Math.PI,
+          };
+        }
+
+        const targetPosition = calculateOffset(userLat, userLon, distance);
+
+        // For simplicity, we position the coin directly in front based on device orientation
+        // Advanced: Implement geolocation-based AR positioning using external libraries or custom logic
+
+        // Ensure the coin is visible initially
+        coin.visible = false;
       }
 
       function showError(message) {
