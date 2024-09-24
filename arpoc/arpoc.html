@@ -2,71 +2,241 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <title>AR Gold Coin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Camera View</title>
     <style>
+      /* Styles for the permission modal and AR container */
       body,
       html {
         margin: 0;
         padding: 0;
-        overflow: hidden;
         height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background-color: #000;
+        width: 100%;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
       }
-      video {
+      #permission-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        background: rgba(0, 0, 0, 0.9);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 20px;
+        box-sizing: border-box;
+        z-index: 1000;
+      }
+      #permission-modal h1 {
+        margin-bottom: 20px;
+        font-size: 28px;
+      }
+      #permission-modal p {
+        font-size: 18px;
+        margin-bottom: 30px;
+      }
+      #permission-modal button {
+        padding: 12px 24px;
+        font-size: 18px;
+        background-color: #28a745;
+        border: none;
+        border-radius: 5px;
+        color: #fff;
+        cursor: pointer;
+      }
+      #permission-modal button:hover {
+        background-color: #218838;
+      }
+      #ar-container {
+        display: none; /* Hidden until permissions are granted */
+        width: 100%;
+        height: 100vh;
+        position: relative;
+      }
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
+        font-size: 20px;
+        z-index: 500;
       }
     </style>
   </head>
   <body>
-    <video id="cameraVideo" autoplay playsinline></video>
+    <!-- Permission Modal -->
+    <div id="permission-modal">
+      <h1>Welcome to AR Gold Coin</h1>
+      <p>
+        To provide an immersive AR experience, we need access to your camera and
+        location.
+      </p>
+      <button id="start-button">Start AR Experience</button>
+    </div>
+
+    <!-- AR Container -->
+    <div id="ar-container">
+      <div id="loading">Loading AR Experience...</div>
+      <!-- AR content will be injected here -->
+    </div>
+
+    <!-- Include necessary scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/build/ar-threex.js"></script>
     <script>
-      async function startCamera() {
-        try {
-          const isMobile = /iPhone|iPad|iPod|Android/i.test(
-            navigator.userAgent
-          );
-          let constraints = {
-            video: isMobile
-              ? { facingMode: { exact: "environment" } } // Use rear-facing camera on mobile
-              : true, // Use default camera on laptop
-          };
+      document
+        .getElementById("start-button")
+        .addEventListener("click", async () => {
           try {
-            const stream = await navigator.mediaDevices.getUserMedia(
-              constraints
+            // Request Camera Access
+            const cameraStream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: "environment" },
+              audio: false,
+            });
+            // If camera access is granted, proceed to request Geolocation
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                // Permissions granted, hide modal and show AR container
+                document.getElementById("permission-modal").style.display =
+                  "none";
+                document.getElementById("ar-container").style.display = "block";
+                initializeAR(position);
+              },
+              (error) => {
+                // Handle Geolocation errors
+                showError(getGeolocationErrorMessage(error));
+                console.error(error);
+              },
+              { enableHighAccuracy: true }
             );
-            const videoElement = document.getElementById("cameraVideo");
-            videoElement.srcObject = stream;
-          } catch (error) {
-            if (error.name === "OverconstrainedError" && isMobile) {
-              // Fallback to default camera if rear-facing camera is not available
-              constraints = { video: true };
-              const stream = await navigator.mediaDevices.getUserMedia(
-                constraints
-              );
-              const videoElement = document.getElementById("cameraVideo");
-              videoElement.srcObject = stream;
-            } else {
-              throw error;
-            }
+          } catch (err) {
+            // Handle Camera access denial
+            showError("Camera access is required for the AR experience.");
+            console.error(err);
           }
-        } catch (error) {
-          handleCameraError(error);
+        });
+
+      function initializeAR(position) {
+        const loading = document.getElementById("loading");
+        // Initialize Three.js Scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.Camera();
+        scene.add(camera);
+
+        const renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document
+          .getElementById("ar-container")
+          .appendChild(renderer.domElement);
+
+        // Initialize AR.js
+        const arToolkitSource = new THREEx.ArToolkitSource({
+          sourceType: "webcam",
+        });
+
+        arToolkitSource.init(() => {
+          setTimeout(() => {
+            arToolkitSource.onResizeElement();
+            arToolkitSource.copyElementSizeTo(renderer.domElement);
+          }, 2000);
+        });
+
+        window.addEventListener("resize", () => {
+          arToolkitSource.onResizeElement();
+          arToolkitSource.copyElementSizeTo(renderer.domElement);
+        });
+
+        const arToolkitContext = new THREEx.ArToolkitContext({
+          cameraParametersUrl:
+            "https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/camera_para.dat",
+          detectionMode: "mono",
+        });
+
+        arToolkitContext.init(() => {
+          camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+        });
+
+        // Create a marker
+        const markerRoot = new THREE.Group();
+        scene.add(markerRoot);
+        const arMarkerControls = new THREEx.ArMarkerControls(
+          arToolkitContext,
+          markerRoot,
+          {
+            type: "pattern",
+            patternUrl:
+              "https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/patt.hiro",
+          }
+        );
+
+        // Add 3D Object (Gold Coin)
+        const geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 32);
+        const material = new THREE.MeshStandardMaterial({
+          color: 0xffd700,
+          metalness: 0.8,
+          roughness: 0.2,
+        });
+        const coin = new THREE.Mesh(geometry, material);
+        coin.rotation.x = -Math.PI / 2;
+        markerRoot.add(coin);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(1, 1, 1).normalize();
+        scene.add(directionalLight);
+
+        // Hide loading indicator once AR is ready
+        loading.style.display = "none";
+
+        // Render loop
+        function animate() {
+          requestAnimationFrame(animate);
+          if (arToolkitSource.ready)
+            arToolkitContext.update(arToolkitSource.domElement);
+          renderer.render(scene, camera);
+        }
+        animate();
+      }
+
+      function calculateOffset(lat, lon, distance) {
+        const R = 6378137; // Earth's mean radius in meters
+        const dLat = distance / R;
+        const dLon = distance / (R * Math.cos((Math.PI * lat) / 180));
+        return {
+          latitude: lat + (dLat * 180) / Math.PI,
+          longitude: lon + (dLon * 180) / Math.PI,
+        };
+      }
+
+      function showError(message) {
+        const modal = document.getElementById("permission-modal");
+        modal.innerHTML = `<h1>Error</h1><p>${message}</p>`;
+      }
+
+      function getGeolocationErrorMessage(error) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            return "Geolocation permission denied. Please enable location services to use this feature.";
+          case error.POSITION_UNAVAILABLE:
+            return "Location information is unavailable.";
+          case error.TIMEOUT:
+            return "The request to get your location timed out.";
+          default:
+            return "An unknown error occurred while retrieving your location.";
         }
       }
-
-      function handleCameraError(error) {
-        console.error("Error accessing the camera", error);
-        alert(`Error accessing the camera: ${error.name} - ${error.message}`);
-        // Additional error handling can be added here
-      }
-
-      document.addEventListener("DOMContentLoaded", startCamera);
     </script>
   </body>
 </html>
