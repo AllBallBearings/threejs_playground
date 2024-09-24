@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>AR Gold Coin</title>
+    <title>Location-Based AR Gold Coin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       /* Styles for the permission modal and AR container */
@@ -88,7 +88,8 @@
 
     <!-- Include necessary scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/build/ar-threex.js"></script>
+    <!-- Include WebXR Polyfill for broader browser support (optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.min.js"></script>
     <script>
       document
         .getElementById("start-button")
@@ -124,9 +125,16 @@
 
       function initializeAR(position) {
         const loading = document.getElementById("loading");
+
         // Initialize Three.js Scene
         const scene = new THREE.Scene();
-        const camera = new THREE.Camera();
+
+        const camera = new THREE.PerspectiveCamera(
+          70,
+          window.innerWidth / window.innerHeight,
+          0.01,
+          1000
+        );
         scene.add(camera);
 
         const renderer = new THREE.WebGLRenderer({
@@ -134,51 +142,17 @@
           alpha: true,
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.xr.enabled = true;
         document
           .getElementById("ar-container")
           .appendChild(renderer.domElement);
 
-        // Initialize AR.js
-        const arToolkitSource = new THREEx.ArToolkitSource({
-          sourceType: "webcam",
-        });
-
-        arToolkitSource.init(() => {
-          setTimeout(() => {
-            arToolkitSource.onResizeElement();
-            arToolkitSource.copyElementSizeTo(renderer.domElement);
-          }, 2000);
-        });
-
-        window.addEventListener("resize", () => {
-          arToolkitSource.onResizeElement();
-          arToolkitSource.copyElementSizeTo(renderer.domElement);
-        });
-
-        const arToolkitContext = new THREEx.ArToolkitContext({
-          cameraParametersUrl:
-            "https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/camera_para.dat",
-          detectionMode: "mono",
-        });
-
-        arToolkitContext.init(() => {
-          camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-        });
-
-        // Create a marker
-        const markerRoot = new THREE.Group();
-        scene.add(markerRoot);
-        const arMarkerControls = new THREEx.ArMarkerControls(
-          arToolkitContext,
-          markerRoot,
-          {
-            type: "pattern",
-            patternUrl:
-              "https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/patt.hiro",
-          }
+        // Create a button to enter AR
+        document.body.appendChild(
+          THREE.ARButton.createButton(renderer, { requiredFeatures: ["local"] })
         );
 
-        // Add 3D Object (Gold Coin)
+        // Create 3D Object (Gold Coin)
         const geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 32);
         const material = new THREE.MeshStandardMaterial({
           color: 0xffd700,
@@ -186,8 +160,11 @@
           roughness: 0.2,
         });
         const coin = new THREE.Mesh(geometry, material);
-        coin.rotation.x = -Math.PI / 2;
-        markerRoot.add(coin);
+        scene.add(coin);
+
+        // Add Axes Helper for Debugging
+        const axesHelper = new THREE.AxesHelper(1.5);
+        scene.add(axesHelper);
 
         // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -200,24 +177,55 @@
         // Hide loading indicator once AR is ready
         loading.style.display = "none";
 
-        // Render loop
-        function animate() {
-          requestAnimationFrame(animate);
-          if (arToolkitSource.ready)
-            arToolkitContext.update(arToolkitSource.domElement);
-          renderer.render(scene, camera);
-        }
-        animate();
-      }
+        // Calculate target position based on GPS
+        const targetOffset = 1.524; // 5 feet in meters
+        let targetBearing = 0; // Degrees, adjust based on desired direction
 
-      function calculateOffset(lat, lon, distance) {
-        const R = 6378137; // Earth's mean radius in meters
-        const dLat = distance / R;
-        const dLon = distance / (R * Math.cos((Math.PI * lat) / 180));
-        return {
-          latitude: lat + (dLat * 180) / Math.PI,
-          longitude: lon + (dLon * 180) / Math.PI,
-        };
+        // Convert bearing and distance to x, z offsets
+        function updateCoinPosition(alpha) {
+          const radians = (alpha || 0) * (Math.PI / 180);
+          const xOffset = targetOffset * Math.sin(radians);
+          const zOffset = targetOffset * Math.cos(radians);
+          coin.position.set(xOffset, 0, -zOffset);
+        }
+
+        // Initial position
+        updateCoinPosition(targetBearing);
+
+        // Listen to device orientation to adjust bearing
+        function handleOrientation(event) {
+          let alpha = event.alpha; // 0 to 360 degrees
+          if (alpha !== null) {
+            updateCoinPosition(alpha);
+          }
+        }
+
+        // Request Device Orientation Permission for iOS 13+
+        if (typeof DeviceOrientationEvent.requestPermission === "function") {
+          DeviceOrientationEvent.requestPermission()
+            .then((permissionState) => {
+              if (permissionState === "granted") {
+                window.addEventListener(
+                  "deviceorientation",
+                  handleOrientation,
+                  true
+                );
+              } else {
+                showError(
+                  "Device orientation permission denied. Unable to track direction."
+                );
+              }
+            })
+            .catch(console.error);
+        } else {
+          // Handle regular non iOS 13+ devices
+          window.addEventListener("deviceorientation", handleOrientation, true);
+        }
+
+        // Render loop
+        renderer.setAnimationLoop(() => {
+          renderer.render(scene, camera);
+        });
       }
 
       function showError(message) {
