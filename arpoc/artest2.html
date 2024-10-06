@@ -6,6 +6,20 @@
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden">
+    <div
+      id="error-message"
+      style="
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(255, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        z-index: 1000;
+        display: none;
+      "
+    ></div>
+
     <a-scene
       embedded
       vr-mode-ui="enabled: false"
@@ -24,22 +38,55 @@
     </a-scene>
 
     <script>
-      // Wait for the GPS to be fetched and the AR scene to initialize
-      window.onload = function () {
-        navigator.geolocation.getCurrentPosition((position) => {
-          const latitude = position.coords.latitude;
-          const longitude = position.coords.longitude;
+      document.addEventListener("DOMContentLoaded", function () {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
 
-          // Offset the location by approximately 1.52 meters east (5 feet)
-          const offsetLongitude = longitude + 1.52 / 111320; // Approx conversion to degrees
+            // Offset location by approximately 1.52 meters east (5 feet)
+            const offsetLongitude = longitude + 1.52 / 111320; // Approx conversion to degrees
 
-          const cube = document.getElementById("cube");
-          cube.setAttribute(
-            "gps-projected-entity-place",
-            `latitude: ${latitude}; longitude: ${offsetLongitude};`
-          );
-        });
-      };
+            const cube = document.getElementById("cube");
+            if (cube) {
+              console.log("Setting cube position...");
+              cube.setAttribute(
+                "gps-projected-entity-place",
+                `latitude: ${latitude}; longitude: ${offsetLongitude};`
+              );
+            } else {
+              console.error("Cube element not found!");
+              document.getElementById("error-message").style.display = "block";
+              document.getElementById("error-message").innerText =
+                "Error: Cube element not found.";
+            }
+          },
+          (error) => {
+            const errorMessageElement =
+              document.getElementById("error-message");
+            errorMessageElement.style.display = "block";
+
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessageElement.innerText =
+                  "Error: User denied the request for Geolocation.";
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessageElement.innerText =
+                  "Error: Location information is unavailable.";
+                break;
+              case error.TIMEOUT:
+                errorMessageElement.innerText =
+                  "Error: The request to get user location timed out.";
+                break;
+              case error.UNKNOWN_ERROR:
+                errorMessageElement.innerText =
+                  "Error: An unknown error occurred.";
+                break;
+            }
+          }
+        );
+      });
     </script>
   </body>
 </html>
