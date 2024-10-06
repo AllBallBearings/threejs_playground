@@ -2,81 +2,154 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Manual Location-Based AR Gold Coin</title>
+    <title>AR Gold Coin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Import model-viewer -->
-    <script
-      type="module"
-      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
-    ></script>
+    <!-- Optional: Include Google Fonts for better typography -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+      rel="stylesheet"
+    />
     <style>
+      /* Basic Reset */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Body Styling */
       body {
+        font-family: "Roboto", sans-serif;
+        background-color: #121212;
+        color: #ffffff;
         display: flex;
         flex-direction: column;
-        justify-content: center;
         align-items: center;
-        height: 100vh;
-        margin: 0;
-        background-color: #000;
-        color: #fff;
+        min-height: 100vh;
+        padding: 20px;
       }
-      model-viewer {
-        width: 300px;
-        height: 300px;
-        background-color: #fff;
+
+      /* Container for the Embed */
+      .sketchfab-embed-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 800px; /* Adjust as needed */
+        padding-top: 56.25%; /* 16:9 Aspect Ratio */
         margin-bottom: 20px;
       }
-      button {
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #28a745;
-        border: none;
-        border-radius: 5px;
-        color: #fff;
-        cursor: pointer;
+
+      /* Responsive Iframe */
+      .sketchfab-embed-wrapper iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       }
-      button:hover {
-        background-color: #218838;
-      }
-      #instructions {
-        max-width: 80%;
+
+      /* Attribution Text Styling */
+      .sketchfab-embed-wrapper p {
+        font-size: 12px;
+        color: #aaaaaa;
         text-align: center;
         margin-top: 10px;
+      }
+
+      /* Attribution Links Styling */
+      .sketchfab-embed-wrapper a {
+        color: #1caad9;
+        text-decoration: none;
+        font-weight: bold;
+      }
+
+      .sketchfab-embed-wrapper a:hover {
+        text-decoration: underline;
+      }
+
+      /* Instructional Text */
+      .instructions {
+        max-width: 800px;
+        text-align: center;
+        margin-top: 10px;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      /* Media Queries for Smaller Screens */
+      @media (max-width: 600px) {
+        .instructions {
+          font-size: 14px;
+        }
       }
     </style>
   </head>
   <body>
-    <model-viewer
-      id="model-viewer"
-      src="path/to/your/gold-coin.glb"
-      alt="Gold Coin"
-      ar
-      ar-modes="quick-look"
-      camera-controls
-      auto-rotate
-      shadow-intensity="1"
-    >
-    </model-viewer>
+    <h1>AR Gold Coin</h1>
+    <p>
+      Experience the Gold Coin in Augmented Reality directly from your browser.
+    </p>
 
-    <button id="ar-button">View in AR</button>
-
-    <div id="instructions">
+    <!-- Sketchfab Embed -->
+    <div class="sketchfab-embed-wrapper">
+      <iframe
+        title="Coin"
+        frameborder="0"
+        allowfullscreen
+        mozallowfullscreen="true"
+        webkitallowfullscreen="true"
+        allow="autoplay; fullscreen; xr-spatial-tracking"
+        xr-spatial-tracking
+        execution-while-out-of-viewport
+        execution-while-not-rendered
+        web-share
+        src="https://sketchfab.com/models/fea7af22a3d04ae1bd61df102a7690c1/embed"
+      >
+      </iframe>
       <p>
-        Click "View in AR" and place the gold coin approximately 5 feet in front
-        of you.
-      </p>
-      <p>
-        Ensure you're in an open space with good lighting for optimal placement.
+        <a
+          href="https://sketchfab.com/3d-models/coin-fea7af22a3d04ae1bd61df102a7690c1?utm_medium=embed&utm_campaign=share-popup&utm_content=fea7af22a3d04ae1bd61df102a7690c1"
+          target="_blank"
+          rel="nofollow"
+          >Coin</a
+        >
+        by
+        <a
+          href="https://sketchfab.com/cloudstormchnl?utm_medium=embed&utm_campaign=share-popup&utm_content=fea7af22a3d04ae1bd61df102a7690c1"
+          target="_blank"
+          rel="nofollow"
+          >cloud</a
+        >
+        on
+        <a
+          href="https://sketchfab.com?utm_medium=embed&utm_campaign=share-popup&utm_content=fea7af22a3d04ae1bd61df102a7690c1"
+          target="_blank"
+          rel="nofollow"
+          >Sketchfab</a
+        >
       </p>
     </div>
 
-    <script>
-      const arButton = document.getElementById("ar-button");
-      const modelViewer = document.getElementById("model-viewer");
-
-      arButton.addEventListener("click", () => {
-        modelViewer.enterAR();
-      });
-    </script>
+    <!-- Instructional Text for AR Placement -->
+    <div class="instructions">
+      <p>To view the Gold Coin in AR:</p>
+      <ol>
+        <li>Click the <strong>AR</strong> button on the 3D model above.</li>
+        <li>
+          Allow the browser to access your camera and location if prompted.
+        </li>
+        <li>Move your device around to detect a flat surface.</li>
+        <li>
+          Tap on the screen to place the Gold Coin approximately 5 feet in front
+          of you.
+        </li>
+      </ol>
+      <p>
+        Ensure you're in a well-lit area with ample space for optimal AR
+        placement.
+      </p>
+    </div>
   </body>
 </html>
