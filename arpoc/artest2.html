@@ -4,6 +4,8 @@
     <title>AR Cube 5 Feet Away</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
+    <!-- Include the GPS projected component -->
+    <script src="https://unpkg.com/aframe-gps-projected-component@1.1.0/dist/aframe-gps-projected-component.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden">
     <div
@@ -38,6 +40,13 @@
     </a-scene>
 
     <script>
+      // Define the rotation-reader component
+      AFRAME.registerComponent("rotation-reader", {
+        tick: function () {
+          // You can add logic here if needed
+        },
+      });
+
       document.addEventListener("DOMContentLoaded", function () {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -45,7 +54,9 @@
             const longitude = position.coords.longitude;
 
             // Offset location by approximately 1.52 meters east (5 feet)
-            const offsetLongitude = longitude + 1.52 / 111320; // Approx conversion to degrees
+            const offsetLongitude =
+              longitude +
+              1.52 / (111320 * Math.cos((latitude * Math.PI) / 180)); // Corrected calculation
 
             const cube = document.getElementById("cube");
             if (cube) {
