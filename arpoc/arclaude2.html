@@ -1,4 +1,3 @@
-<!-- This works well for relative position, only problem is that the object stays infront of the user and user cannot move around it -->
 <!DOCTYPE html>
 <html>
   <head>
@@ -7,10 +6,9 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no"
     />
-    <title>Nearby AR Demo</title>
+    <title>Walkable AR Demo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-      /* Previous styles remain the same */
       body {
         margin: 0;
         overflow: hidden;
@@ -64,7 +62,7 @@
   </head>
   <body>
     <div id="permissions">
-      <h2>Nearby AR Demo</h2>
+      <h2>Walkable AR Demo</h2>
       <div id="browser-message"></div>
       <div id="permission-content">
         <p>This app requires access to your:</p>
@@ -82,9 +80,11 @@
       let arObject;
       let permissionsGranted = false;
       let initialPosition = null;
+      let watchId = null;
 
       // Target will be 5 feet (1.524 meters) away
       const TARGET_DISTANCE = 1.524;
+      const EARTH_RADIUS = 6371000; // Earth's radius in meters
 
       function init() {
         scene = new THREE.Scene();
@@ -94,7 +94,6 @@
           0.1,
           1000
         );
-        camera.position.z = 5;
 
         renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -117,10 +116,67 @@
         arrow.position.y = 0.5;
         arObject.add(arrow);
 
-        // Position the object 5 feet away
+        // Initially position the object
         arObject.position.z = -TARGET_DISTANCE;
 
         animate();
+      }
+
+      // Convert latitude/longitude difference to meters
+      function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+        const dLat = deg2rad(lat2 - lat1);
+        const dLon = deg2rad(lon2 - lon1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(deg2rad(lat1)) *
+            Math.cos(deg2rad(lat2)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return EARTH_RADIUS * c;
+      }
+
+      function deg2rad(deg) {
+        return deg * (Math.PI / 180);
+      }
+
+      function updateObjectPosition(position) {
+        if (!initialPosition) return;
+
+        // Calculate distance from initial position
+        const deltaX = getDistanceFromLatLonInMeters(
+          initialPosition.lat,
+          initialPosition.lng,
+          initialPosition.lat,
+          position.coords.longitude
+        );
+        const deltaZ = getDistanceFromLatLonInMeters(
+          initialPosition.lat,
+          initialPosition.lng,
+          position.coords.latitude,
+          initialPosition.lng
+        );
+
+        // Adjust signs based on direction
+        const xSign = position.coords.longitude > initialPosition.lng ? 1 : -1;
+        const zSign = position.coords.latitude > initialPosition.lat ? -1 : 1;
+
+        // Update object position relative to camera
+        arObject.position.x = xSign * deltaX;
+        arObject.position.z = zSign * deltaZ - TARGET_DISTANCE;
+
+        // Update debug info
+        document.getElementById("debug").innerHTML = `
+                Position Delta: ${deltaX.toFixed(2)}m E/W, ${deltaZ.toFixed(
+          2
+        )}m N/S<br>
+                Object Position: (${arObject.position.x.toFixed(
+                  2
+                )}, ${arObject.position.z.toFixed(2)})<br>
+                Distance from start: ${Math.sqrt(
+                  deltaX * deltaX + deltaZ * deltaZ
+                ).toFixed(2)}m
+            `;
       }
 
       async function requestPermissions() {
@@ -150,9 +206,16 @@
             );
           });
 
+          // Start watching position
+          watchId = navigator.geolocation.watchPosition(
+            updateObjectPosition,
+            (error) => console.error("Position error:", error),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+          );
+
           document.getElementById("permissions").style.display = "none";
           document.getElementById("info").innerHTML =
-            "AR object placed 5 feet away";
+            "Walk around to explore the AR object";
           permissionsGranted = true;
 
           setupDeviceOrientation();
@@ -176,16 +239,6 @@
           camera.rotation.x = beta;
           camera.rotation.y = alpha;
           camera.rotation.z = gamma;
-
-          // Update debug info
-          document.getElementById("debug").innerHTML = `
-                    Alpha (Y): ${event.alpha.toFixed(1)}°<br>
-                    Beta (X): ${event.beta.toFixed(1)}°<br>
-                    Gamma (Z): ${event.gamma.toFixed(1)}°<br>
-                    Distance: ${TARGET_DISTANCE.toFixed(2)}m (${(
-            TARGET_DISTANCE * 3.28084
-          ).toFixed(1)} ft)
-                `;
         });
       }
 
@@ -235,6 +288,13 @@
           .getElementById("startButton")
           .addEventListener("click", requestPermissions);
       }
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", () => {
+        if (watchId !== null) {
+          navigator.geolocation.clearWatch(watchId);
+        }
+      });
     </script>
   </body>
 </html>
