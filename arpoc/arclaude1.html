@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>GPS AR Demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      #permissions {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        font-family: Arial, sans-serif;
+        z-index: 1000;
+      }
+      #startButton {
+        padding: 10px 20px;
+        font-size: 16px;
+        margin: 10px;
+        cursor: pointer;
+        background: #4caf50;
+        border: none;
+        color: white;
+        border-radius: 5px;
+      }
+      #info {
+        position: fixed;
+        top: 10px;
+        width: 100%;
+        text-align: center;
+        color: white;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 5px;
+        font-family: Arial, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="permissions">
+      <h2>AR Experience</h2>
+      <p>This app requires access to your:</p>
+      <ul style="list-style: none; padding: 0">
+        <li>📍 Location</li>
+        <li>📱 Device orientation</li>
+      </ul>
+      <button id="startButton">Start AR</button>
+    </div>
+    <div id="info">Waiting for permissions...</div>
+    <script>
+      let camera, scene, renderer;
+      let arObject;
+      let permissionsGranted = false;
+
+      // Initialize the AR scene
+      function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        camera.position.z = 5;
+
+        renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const geometry = new THREE.BoxGeometry();
+        const material = new THREE.MeshBasicMaterial({
+          color: 0x00ff00,
+          wireframe: true,
+        });
+        arObject = new THREE.Mesh(geometry, material);
+        scene.add(arObject);
+
+        animate();
+      }
+
+      // Handle all necessary permissions
+      async function requestPermissions() {
+        try {
+          // Request device orientation permission (iOS)
+          if (
+            typeof DeviceOrientationEvent !== "undefined" &&
+            typeof DeviceOrientationEvent.requestPermission === "function"
+          ) {
+            const orientationPermission =
+              await DeviceOrientationEvent.requestPermission();
+            if (orientationPermission !== "granted") {
+              throw new Error("Device orientation permission not granted");
+            }
+          }
+
+          // Request device motion permission (iOS)
+          if (
+            typeof DeviceMotionEvent !== "undefined" &&
+            typeof DeviceMotionEvent.requestPermission === "function"
+          ) {
+            const motionPermission =
+              await DeviceMotionEvent.requestPermission();
+            if (motionPermission !== "granted") {
+              throw new Error("Device motion permission not granted");
+            }
+          }
+
+          // Request geolocation permission
+          const geolocationPermission = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              () => resolve("granted"),
+              (error) => reject(error),
+              { enableHighAccuracy: true }
+            );
+          });
+
+          // If we get here, all permissions were granted
+          document.getElementById("permissions").style.display = "none";
+          document.getElementById("info").innerHTML = "AR Experience Ready";
+          permissionsGranted = true;
+
+          // Setup event listeners and start tracking
+          setupDeviceOrientation();
+          startLocationTracking();
+          init();
+        } catch (error) {
+          console.error("Permission error:", error);
+          document.getElementById(
+            "info"
+          ).innerHTML = `Error: ${error.message}. Please refresh and try again.`;
+        }
+      }
+
+      function setupDeviceOrientation() {
+        window.addEventListener("deviceorientation", (event) => {
+          if (!event.alpha || !permissionsGranted) return;
+
+          const alpha = event.alpha * (Math.PI / 180);
+          const beta = event.beta * (Math.PI / 180);
+          const gamma = event.gamma * (Math.PI / 180);
+
+          camera.rotation.x = beta;
+          camera.rotation.y = alpha;
+          camera.rotation.z = gamma;
+        });
+      }
+
+      function startLocationTracking() {
+        const TARGET_LAT = 37.7749;
+        const TARGET_LNG = -122.4194;
+
+        if ("geolocation" in navigator) {
+          navigator.geolocation.watchPosition(
+            (position) => {
+              if (!permissionsGranted) return;
+
+              const distance = calculateDistance(
+                position.coords.latitude,
+                position.coords.longitude,
+                TARGET_LAT,
+                TARGET_LNG
+              );
+
+              const bearing = calculateBearing(
+                position.coords.latitude,
+                position.coords.longitude,
+                TARGET_LAT,
+                TARGET_LNG
+              );
+
+              document.getElementById(
+                "info"
+              ).innerHTML = `Distance: ${distance.toFixed(
+                2
+              )}m<br>Bearing: ${bearing.toFixed(2)}°`;
+
+              arObject.position.z = -distance / 10;
+              arObject.position.x = Math.sin(bearing) * (distance / 10);
+            },
+            (error) => {
+              console.error("Geolocation error:", error);
+              document.getElementById(
+                "info"
+              ).innerHTML = `Location error: ${error.message}`;
+            },
+            { enableHighAccuracy: true }
+          );
+        }
+      }
+
+      function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const φ1 = (lat1 * Math.PI) / 180;
+        const φ2 = (lat2 * Math.PI) / 180;
+        const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+        const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+        const a =
+          Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+          Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+      }
+
+      function calculateBearing(lat1, lon1, lat2, lon2) {
+        const φ1 = (lat1 * Math.PI) / 180;
+        const φ2 = (lat2 * Math.PI) / 180;
+        const λ1 = (lon1 * Math.PI) / 180;
+        const λ2 = (lon2 * Math.PI) / 180;
+
+        const y = Math.sin(λ2 - λ1) * Math.cos(φ2);
+        const x =
+          Math.cos(φ1) * Math.sin(φ2) -
+          Math.sin(φ1) * Math.cos(φ2) * Math.cos(λ2 - λ1);
+        const θ = Math.atan2(y, x);
+
+        return ((θ * 180) / Math.PI + 360) % 360;
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (permissionsGranted) {
+          renderer.render(scene, camera);
+        }
+      }
+
+      // Set up initial permission request flow
+      document
+        .getElementById("startButton")
+        .addEventListener("click", requestPermissions);
+    </script>
+  </body>
+</html>
