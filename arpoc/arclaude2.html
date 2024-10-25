@@ -85,15 +85,19 @@
       // Target will be 5 feet (1.524 meters) away
       const TARGET_DISTANCE = 1.524;
       const EARTH_RADIUS = 6371000; // Earth's radius in meters
+      const CAMERA_HEIGHT = 1.6; // Average eye level height in meters
 
       function init() {
         scene = new THREE.Scene();
+
+        // Set up camera at eye level
         camera = new THREE.PerspectiveCamera(
           75,
           window.innerWidth / window.innerHeight,
           0.1,
           1000
         );
+        camera.position.y = CAMERA_HEIGHT;
 
         renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -109,20 +113,28 @@
         arObject = new THREE.Mesh(geometry, material);
         scene.add(arObject);
 
-        // Add a pointer arrow
+        // Add a pointer arrow on top
         const arrowGeometry = new THREE.ConeGeometry(0.2, 0.4, 8);
         const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
         arrow.position.y = 0.5;
         arObject.add(arrow);
 
-        // Initially position the object
+        // Position the object at eye level
+        arObject.position.y = CAMERA_HEIGHT;
         arObject.position.z = -TARGET_DISTANCE;
+
+        // Add ground grid for reference
+        const gridHelper = new THREE.GridHelper(10, 10);
+        scene.add(gridHelper);
 
         animate();
       }
 
-      // Convert latitude/longitude difference to meters
+      function deg2rad(deg) {
+        return deg * (Math.PI / 180);
+      }
+
       function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
         const dLat = deg2rad(lat2 - lat1);
         const dLon = deg2rad(lon2 - lon1);
@@ -134,10 +146,6 @@
             Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return EARTH_RADIUS * c;
-      }
-
-      function deg2rad(deg) {
-        return deg * (Math.PI / 180);
       }
 
       function updateObjectPosition(position) {
@@ -165,17 +173,27 @@
         arObject.position.x = xSign * deltaX;
         arObject.position.z = zSign * deltaZ - TARGET_DISTANCE;
 
+        // Keep object at eye level
+        arObject.position.y = CAMERA_HEIGHT;
+
+        // Calculate actual distance from user to object
+        const distanceToObject = Math.sqrt(
+          Math.pow(arObject.position.x, 2) +
+            Math.pow(arObject.position.z + TARGET_DISTANCE, 2)
+        );
+
         // Update debug info
         document.getElementById("debug").innerHTML = `
+                Distance to object: ${distanceToObject.toFixed(2)}m<br>
                 Position Delta: ${deltaX.toFixed(2)}m E/W, ${deltaZ.toFixed(
           2
         )}m N/S<br>
                 Object Position: (${arObject.position.x.toFixed(
                   2
                 )}, ${arObject.position.z.toFixed(2)})<br>
-                Distance from start: ${Math.sqrt(
-                  deltaX * deltaX + deltaZ * deltaZ
-                ).toFixed(2)}m
+                Compass Heading: ${
+                  event.alpha ? event.alpha.toFixed(1) : "N/A"
+                }°
             `;
       }
 
@@ -232,13 +250,23 @@
         window.addEventListener("deviceorientation", (event) => {
           if (!event.alpha || !permissionsGranted) return;
 
-          const alpha = event.alpha * (Math.PI / 180);
-          const beta = event.beta * (Math.PI / 180);
-          const gamma = event.gamma * (Math.PI / 180);
+          // Convert degrees to radians
+          const alpha = deg2rad(event.alpha); // Z-axis rotation (compass direction)
+          const beta = deg2rad(event.beta); // X-axis rotation (front-back tilt)
+          const gamma = deg2rad(event.gamma); // Y-axis rotation (left-right tilt)
 
-          camera.rotation.x = beta;
-          camera.rotation.y = alpha;
-          camera.rotation.z = gamma;
+          // Create a rotation matrix that only uses compass direction (alpha)
+          // and slight adjustments for viewing angle (beta/gamma)
+          const betaConstrained =
+            Math.max(-45, Math.min(45, event.beta)) * (Math.PI / 180);
+          const gammaConstrained =
+            Math.max(-45, Math.min(45, event.gamma)) * (Math.PI / 180);
+
+          camera.rotation.set(
+            betaConstrained * 0.5, // Reduced influence of front-back tilt
+            alpha, // Full compass rotation
+            gammaConstrained * 0.5 // Reduced influence of left-right tilt
+          );
         });
       }
 
@@ -293,6 +321,15 @@
       window.addEventListener("beforeunload", () => {
         if (watchId !== null) {
           navigator.geolocation.clearWatch(watchId);
+        }
+      });
+
+      // Handle window resize
+      window.addEventListener("resize", () => {
+        if (camera && renderer) {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
         }
       });
     </script>
