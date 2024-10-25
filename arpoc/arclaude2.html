@@ -6,9 +6,10 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no"
     />
-    <title>Walkable AR Demo</title>
+    <title>Fixed Position AR Demo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
+      /* Previous styles remain unchanged */
       body {
         margin: 0;
         overflow: hidden;
@@ -62,7 +63,7 @@
   </head>
   <body>
     <div id="permissions">
-      <h2>Walkable AR Demo</h2>
+      <h2>Fixed Position AR Demo</h2>
       <div id="browser-message"></div>
       <div id="permission-content">
         <p>This app requires access to your:</p>
@@ -80,17 +81,16 @@
       let arObject;
       let permissionsGranted = false;
       let initialPosition = null;
+      let initialCompassHeading = null;
       let watchId = null;
 
-      // Target will be 5 feet (1.524 meters) away
-      const TARGET_DISTANCE = 1.524;
+      const TARGET_DISTANCE = 1.524; // 5 feet in meters
       const EARTH_RADIUS = 6371000; // Earth's radius in meters
       const CAMERA_HEIGHT = 1.6; // Average eye level height in meters
 
       function init() {
         scene = new THREE.Scene();
 
-        // Set up camera at eye level
         camera = new THREE.PerspectiveCamera(
           75,
           window.innerWidth / window.innerHeight,
@@ -113,14 +113,15 @@
         arObject = new THREE.Mesh(geometry, material);
         scene.add(arObject);
 
-        // Add a pointer arrow on top
+        // Add directional arrow
         const arrowGeometry = new THREE.ConeGeometry(0.2, 0.4, 8);
         const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
         arrow.position.y = 0.5;
+        arrow.rotation.x = Math.PI / 2; // Point forward
         arObject.add(arrow);
 
-        // Position the object at eye level
+        // Position object at eye level
         arObject.position.y = CAMERA_HEIGHT;
         arObject.position.z = -TARGET_DISTANCE;
 
@@ -148,52 +149,54 @@
         return EARTH_RADIUS * c;
       }
 
-      function updateObjectPosition(position) {
-        if (!initialPosition) return;
+      function getBearing(lat1, lon1, lat2, lon2) {
+        const dLon = deg2rad(lon2 - lon1);
+        const lat1Rad = deg2rad(lat1);
+        const lat2Rad = deg2rad(lat2);
 
-        // Calculate distance from initial position
-        const deltaX = getDistanceFromLatLonInMeters(
-          initialPosition.lat,
-          initialPosition.lng,
-          initialPosition.lat,
-          position.coords.longitude
-        );
-        const deltaZ = getDistanceFromLatLonInMeters(
+        const y = Math.sin(dLon) * Math.cos(lat2Rad);
+        const x =
+          Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+          Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+
+        return Math.atan2(y, x);
+      }
+
+      function updateObjectPosition(position) {
+        if (!initialPosition || initialCompassHeading === null) return;
+
+        // Calculate distance and bearing to initial position
+        const distance = getDistanceFromLatLonInMeters(
           initialPosition.lat,
           initialPosition.lng,
           position.coords.latitude,
+          position.coords.longitude
+        );
+
+        const bearing = getBearing(
+          position.coords.latitude,
+          position.coords.longitude,
+          initialPosition.lat,
           initialPosition.lng
         );
 
-        // Adjust signs based on direction
-        const xSign = position.coords.longitude > initialPosition.lng ? 1 : -1;
-        const zSign = position.coords.latitude > initialPosition.lat ? -1 : 1;
+        // Convert polar coordinates (distance, bearing) to Cartesian (x, z)
+        const x = distance * Math.sin(bearing);
+        const z = distance * Math.cos(bearing);
 
-        // Update object position relative to camera
-        arObject.position.x = xSign * deltaX;
-        arObject.position.z = zSign * deltaZ - TARGET_DISTANCE;
+        // Update camera position (inverse of object position)
+        camera.position.x = x;
+        camera.position.z = z;
+        camera.position.y = CAMERA_HEIGHT;
 
-        // Keep object at eye level
-        arObject.position.y = CAMERA_HEIGHT;
+        // Keep object at initial position (origin)
+        arObject.position.set(0, CAMERA_HEIGHT, -TARGET_DISTANCE);
 
-        // Calculate actual distance from user to object
-        const distanceToObject = Math.sqrt(
-          Math.pow(arObject.position.x, 2) +
-            Math.pow(arObject.position.z + TARGET_DISTANCE, 2)
-        );
-
-        // Update debug info
         document.getElementById("debug").innerHTML = `
-                Distance to object: ${distanceToObject.toFixed(2)}m<br>
-                Position Delta: ${deltaX.toFixed(2)}m E/W, ${deltaZ.toFixed(
-          2
-        )}m N/S<br>
-                Object Position: (${arObject.position.x.toFixed(
-                  2
-                )}, ${arObject.position.z.toFixed(2)})<br>
-                Compass Heading: ${
-                  event.alpha ? event.alpha.toFixed(1) : "N/A"
-                }°
+                Distance: ${distance.toFixed(2)}m<br>
+                Bearing: ${((bearing * 180) / Math.PI).toFixed(1)}°<br>
+                Camera Pos: (${x.toFixed(2)}, ${z.toFixed(2)})<br>
+                Compass: ${initialCompassHeading.toFixed(1)}°
             `;
       }
 
@@ -209,7 +212,7 @@
             }
           }
 
-          // Get initial position
+          // Get initial position and compass heading
           const geolocationPermission = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
               (position) => {
@@ -250,22 +253,25 @@
         window.addEventListener("deviceorientation", (event) => {
           if (!event.alpha || !permissionsGranted) return;
 
-          // Convert degrees to radians
-          const alpha = deg2rad(event.alpha); // Z-axis rotation (compass direction)
-          const beta = deg2rad(event.beta); // X-axis rotation (front-back tilt)
-          const gamma = deg2rad(event.gamma); // Y-axis rotation (left-right tilt)
+          // Store initial compass heading if not set
+          if (initialCompassHeading === null) {
+            initialCompassHeading = event.alpha;
+          }
 
-          // Create a rotation matrix that only uses compass direction (alpha)
-          // and slight adjustments for viewing angle (beta/gamma)
-          const betaConstrained =
-            Math.max(-45, Math.min(45, event.beta)) * (Math.PI / 180);
-          const gammaConstrained =
-            Math.max(-45, Math.min(45, event.gamma)) * (Math.PI / 180);
+          // Calculate relative heading from initial direction
+          const relativeHeading = deg2rad(event.alpha - initialCompassHeading);
 
-          camera.rotation.set(
-            betaConstrained * 0.5, // Reduced influence of front-back tilt
-            alpha, // Full compass rotation
-            gammaConstrained * 0.5 // Reduced influence of left-right tilt
+          // Apply device orientation relative to initial heading
+          const beta = deg2rad(event.beta);
+          const gamma = deg2rad(event.gamma);
+
+          // Create rotation matrix for proper orientation
+          camera.quaternion.setFromEuler(
+            new THREE.Euler(
+              beta * 0.5, // Limit tilt effect
+              relativeHeading,
+              gamma * 0.5 // Limit roll effect
+            )
           );
         });
       }
@@ -277,7 +283,7 @@
         }
       }
 
-      // Browser detection functions
+      // Previous browser detection and initialization code remains unchanged
       function isIOSDevice() {
         return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
       }
@@ -310,21 +316,18 @@
         return true;
       }
 
-      // Initialize based on browser compatibility
       if (checkBrowserCompatibility()) {
         document
           .getElementById("startButton")
           .addEventListener("click", requestPermissions);
       }
 
-      // Cleanup on page unload
       window.addEventListener("beforeunload", () => {
         if (watchId !== null) {
           navigator.geolocation.clearWatch(watchId);
         }
       });
 
-      // Handle window resize
       window.addEventListener("resize", () => {
         if (camera && renderer) {
           camera.aspect = window.innerWidth / window.innerHeight;
