@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
-import { AlvaAR } from './helper_scripts/alva_ar.js';
+import { AlvaAR } from '../helper_scripts/alva_ar.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const video = document.getElementById('video');
