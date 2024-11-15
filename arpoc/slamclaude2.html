@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>AR SLAM Demo</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+      #canvas {
+        width: 100vw;
+        height: 100vh;
+        touch-action: none;
+      }
+      #info {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+      .button {
+        position: fixed;
+        padding: 10px 20px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+      #startBtn {
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      #placeBtn {
+        bottom: 20px;
+        right: 20px;
+        display: none;
+      }
+      #status {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div id="info">
+      Position: <span id="position">0, 0</span><br />
+      Orientation: <span id="orientation">0°</span><br />
+      Points: <span id="points">0</span>
+    </div>
+    <div id="status"></div>
+    <button class="button" id="startBtn">Start AR SLAM</button>
+    <button class="button" id="placeBtn">Place Cube</button>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const positionEl = document.getElementById("position");
+      const orientationEl = document.getElementById("orientation");
+      const pointsEl = document.getElementById("points");
+      const startBtn = document.getElementById("startBtn");
+      const placeBtn = document.getElementById("placeBtn");
+      const statusEl = document.getElementById("status");
+
+      function showStatus(message, isError = false) {
+        statusEl.style.display = "block";
+        statusEl.style.background = isError
+          ? "rgba(200,0,0,0.8)"
+          : "rgba(0,0,0,0.8)";
+        statusEl.textContent = message;
+        setTimeout(() => {
+          statusEl.style.display = "none";
+        }, 3000);
+      }
+
+      // Set canvas size
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      let isTracking = false;
+      let points = [];
+      let position = { x: 0, y: 0, z: 0 };
+      let orientation = { alpha: 0, beta: 0, gamma: 0 };
+      let lastAccel = { x: 0, y: 0, z: 0 };
+
+      // AR object properties
+      let arObject = {
+        placed: false,
+        worldPos: { x: 0, y: 0, z: 0 },
+        size: 50, // size in pixels
+      };
+
+      // 3D cube vertices (centered at origin)
+      const cubeVertices = [
+        // Front face
+        [-1, -1, 1],
+        [1, -1, 1],
+        [1, 1, 1],
+        [-1, 1, 1],
+        // Back face
+        [-1, -1, -1],
+        [1, -1, -1],
+        [1, 1, -1],
+        [-1, 1, -1],
+      ].map((v) => v.map((coord) => coord * (arObject.size / 2)));
+
+      // Cube edges (pairs of vertex indices)
+      const cubeEdges = [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 0], // front
+        [4, 5],
+        [5, 6],
+        [6, 7],
+        [7, 4], // back
+        [0, 4],
+        [1, 5],
+        [2, 6],
+        [3, 7], // connecting edges
+      ];
+
+      function rotatePoint(point, orientation) {
+        const alpha = (orientation.alpha * Math.PI) / 180;
+        const beta = (orientation.beta * Math.PI) / 180;
+        const gamma = (orientation.gamma * Math.PI) / 180;
+
+        // Apply rotations (simplified for demonstration)
+        let x = point[0];
+        let y = point[1];
+        let z = point[2];
+
+        // Rotate around Z (alpha)
+        let x1 = x * Math.cos(alpha) - y * Math.sin(alpha);
+        let y1 = x * Math.sin(alpha) + y * Math.cos(alpha);
+
+        // Rotate around X (beta)
+        let y2 = y1 * Math.cos(beta) - z * Math.sin(beta);
+        let z1 = y1 * Math.sin(beta) + z * Math.cos(beta);
+
+        // Rotate around Y (gamma)
+        let x2 = x1 * Math.cos(gamma) + z1 * Math.sin(gamma);
+        let z2 = -x1 * Math.sin(gamma) + z1 * Math.cos(gamma);
+
+        return [x2, y2, z2];
+      }
+
+      function project3DPoint(point, position) {
+        // Simple perspective projection
+        const fov = 60;
+        const near = 0.1;
+        const far = 1000;
+        const scale = canvas.height / Math.tan((fov * Math.PI) / 180 / 2);
+
+        // Translate point relative to camera position
+        const x = point[0] - position.x;
+        const y = point[1] - position.y;
+        const z = point[2] - position.z;
+
+        // Project to 2D
+        const projectedX = (x * scale) / z + canvas.width / 2;
+        const projectedY = (y * scale) / z + canvas.height / 2;
+
+        return [projectedX, projectedY];
+      }
+
+      async function startTracking() {
+        const isIOS =
+          /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+        try {
+          if (isIOS) {
+            showStatus("Requesting motion permissions...");
+
+            if (typeof DeviceMotionEvent.requestPermission === "function") {
+              const motionPermission =
+                await DeviceMotionEvent.requestPermission();
+              if (motionPermission !== "granted") {
+                throw new Error("Motion permission denied");
+              }
+            }
+
+            if (
+              typeof DeviceOrientationEvent.requestPermission === "function"
+            ) {
+              const orientationPermission =
+                await DeviceOrientationEvent.requestPermission();
+              if (orientationPermission !== "granted") {
+                throw new Error("Orientation permission denied");
+              }
+            }
+          }
+
+          initSensors();
+          showStatus("AR SLAM tracking started!");
+          placeBtn.style.display = "block";
+        } catch (error) {
+          console.error("Error starting SLAM:", error);
+          showStatus(
+            "Error: " + (error.message || "Failed to start sensors"),
+            true
+          );
+
+          if (error.message && error.message.includes("denied")) {
+            showStatus(
+              "Please enable motion & orientation access in Settings > Safari > Motion & Orientation Access",
+              true
+            );
+          }
+        }
+      }
+
+      function initSensors() {
+        isTracking = true;
+        startBtn.style.display = "none";
+
+        window.addEventListener("devicemotion", (event) => {
+          if (!isTracking) return;
+
+          const accel = event.accelerationIncludingGravity;
+          if (!accel) {
+            showStatus("No acceleration data available", true);
+            return;
+          }
+
+          // Simple motion tracking
+          const deltaX = (accel.x || 0) - lastAccel.x;
+          const deltaY = (accel.y || 0) - lastAccel.y;
+          const deltaZ = (accel.z || 0) - lastAccel.z;
+
+          // Update position with basic smoothing
+          position.x += deltaX * 2;
+          position.y += deltaY * 2;
+          position.z += deltaZ * 2;
+
+          lastAccel = {
+            x: accel.x || 0,
+            y: accel.y || 0,
+            z: accel.z || 0,
+          };
+
+          // Add points periodically
+          if (Math.random() < 0.1) {
+            points.push({
+              x: position.x + canvas.width / 2,
+              y: position.y + canvas.height / 2,
+              z: position.z,
+            });
+          }
+
+          updateDisplay();
+        });
+
+        window.addEventListener("deviceorientation", (event) => {
+          if (!isTracking) return;
+          orientation.alpha = event.alpha || 0;
+          orientation.beta = event.beta || 0;
+          orientation.gamma = event.gamma || 0;
+          updateDisplay();
+        });
+      }
+
+      function drawCube() {
+        if (!arObject.placed) return;
+
+        // Transform cube vertices
+        const transformedVertices = cubeVertices.map((vertex) => {
+          // Rotate vertex
+          const rotated = rotatePoint(vertex, orientation);
+
+          // Add world position offset
+          const worldPos = [
+            rotated[0] + arObject.worldPos.x,
+            rotated[1] + arObject.worldPos.y,
+            rotated[2] + arObject.worldPos.z,
+          ];
+
+          // Project to 2D
+          return project3DPoint(worldPos, position);
+        });
+
+        // Draw edges
+        ctx.strokeStyle = "#00ff00";
+        ctx.lineWidth = 2;
+
+        cubeEdges.forEach((edge) => {
+          const [v1, v2] = edge;
+          ctx.beginPath();
+          ctx.moveTo(transformedVertices[v1][0], transformedVertices[v1][1]);
+          ctx.lineTo(transformedVertices[v2][0], transformedVertices[v2][1]);
+          ctx.stroke();
+        });
+      }
+
+      function updateDisplay() {
+        // Clear canvas
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw points
+        ctx.fillStyle = "yellow";
+        points.forEach((point) => {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Draw AR cube
+        drawCube();
+
+        // Draw current position
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(
+          position.x + canvas.width / 2,
+          position.y + canvas.height / 2,
+          5,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+
+        // Update info display
+        positionEl.textContent = `${Math.round(position.x)}, ${Math.round(
+          position.y
+        )}, ${Math.round(position.z)}`;
+        orientationEl.textContent = `${Math.round(
+          orientation.alpha
+        )}°, ${Math.round(orientation.beta)}°, ${Math.round(
+          orientation.gamma
+        )}°`;
+        pointsEl.textContent = points.length;
+      }
+
+      startBtn.addEventListener("click", startTracking);
+
+      placeBtn.addEventListener("click", () => {
+        // Place cube 2 meters in front of current position
+        arObject.worldPos = {
+          x: position.x + Math.sin((orientation.alpha * Math.PI) / 180) * 200,
+          y: position.y + Math.sin((orientation.beta * Math.PI) / 180) * 200,
+          z: position.z + Math.cos((orientation.alpha * Math.PI) / 180) * 200,
+        };
+        arObject.placed = true;
+        showStatus("Cube placed!");
+      });
+
+      // Initial render
+      updateDisplay();
+    </script>
+  </body>
+</html>
