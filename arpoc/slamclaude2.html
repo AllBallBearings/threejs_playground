@@ -6,17 +6,29 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no"
     />
-    <title>AR SLAM Demo</title>
+    <title>Camera AR SLAM Demo</title>
     <style>
       body {
         margin: 0;
         overflow: hidden;
         font-family: Arial, sans-serif;
+        background: black;
       }
-      #canvas {
+      #video {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100vw;
         height: 100vh;
-        touch-action: none;
+        object-fit: cover;
+      }
+      #canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
       }
       #info {
         position: fixed;
@@ -27,6 +39,7 @@
         padding: 10px;
         border-radius: 5px;
         font-size: 14px;
+        z-index: 10;
       }
       .button {
         position: fixed;
@@ -36,6 +49,7 @@
         border: none;
         border-radius: 5px;
         font-size: 16px;
+        z-index: 10;
       }
       #startBtn {
         bottom: 20px;
@@ -58,10 +72,12 @@
         border-radius: 10px;
         text-align: center;
         display: none;
+        z-index: 20;
       }
     </style>
   </head>
   <body>
+    <video id="video" playsinline autoplay></video>
     <canvas id="canvas"></canvas>
     <div id="info">
       Position: <span id="position">0, 0</span><br />
@@ -73,6 +89,7 @@
     <button class="button" id="placeBtn">Place Cube</button>
 
     <script>
+      const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d");
       const positionEl = document.getElementById("position");
@@ -144,48 +161,23 @@
         [3, 7], // connecting edges
       ];
 
-      function rotatePoint(point, orientation) {
-        const alpha = (orientation.alpha * Math.PI) / 180;
-        const beta = (orientation.beta * Math.PI) / 180;
-        const gamma = (orientation.gamma * Math.PI) / 180;
-
-        // Apply rotations (simplified for demonstration)
-        let x = point[0];
-        let y = point[1];
-        let z = point[2];
-
-        // Rotate around Z (alpha)
-        let x1 = x * Math.cos(alpha) - y * Math.sin(alpha);
-        let y1 = x * Math.sin(alpha) + y * Math.cos(alpha);
-
-        // Rotate around X (beta)
-        let y2 = y1 * Math.cos(beta) - z * Math.sin(beta);
-        let z1 = y1 * Math.sin(beta) + z * Math.cos(beta);
-
-        // Rotate around Y (gamma)
-        let x2 = x1 * Math.cos(gamma) + z1 * Math.sin(gamma);
-        let z2 = -x1 * Math.sin(gamma) + z1 * Math.cos(gamma);
-
-        return [x2, y2, z2];
-      }
-
-      function project3DPoint(point, position) {
-        // Simple perspective projection
-        const fov = 60;
-        const near = 0.1;
-        const far = 1000;
-        const scale = canvas.height / Math.tan((fov * Math.PI) / 180 / 2);
-
-        // Translate point relative to camera position
-        const x = point[0] - position.x;
-        const y = point[1] - position.y;
-        const z = point[2] - position.z;
-
-        // Project to 2D
-        const projectedX = (x * scale) / z + canvas.width / 2;
-        const projectedY = (y * scale) / z + canvas.height / 2;
-
-        return [projectedX, projectedY];
+      async function initCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "environment",
+              width: { ideal: window.innerWidth },
+              height: { ideal: window.innerHeight },
+            },
+          });
+          video.srcObject = stream;
+          showStatus("Camera started");
+          return true;
+        } catch (error) {
+          console.error("Error accessing camera:", error);
+          showStatus("Error accessing camera: " + error.message, true);
+          return false;
+        }
       }
 
       async function startTracking() {
@@ -194,6 +186,13 @@
           (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
         try {
+          // First start the camera
+          const cameraStarted = await initCamera();
+          if (!cameraStarted) {
+            throw new Error("Failed to start camera");
+          }
+
+          // Then request motion permissions on iOS
           if (isIOS) {
             showStatus("Requesting motion permissions...");
 
@@ -228,11 +227,52 @@
 
           if (error.message && error.message.includes("denied")) {
             showStatus(
-              "Please enable motion & orientation access in Settings > Safari > Motion & Orientation Access",
+              "Please enable camera and motion access in Settings",
               true
             );
           }
         }
+      }
+
+      function rotatePoint(point, orientation) {
+        const alpha = (orientation.alpha * Math.PI) / 180;
+        const beta = (orientation.beta * Math.PI) / 180;
+        const gamma = (orientation.gamma * Math.PI) / 180;
+
+        let x = point[0];
+        let y = point[1];
+        let z = point[2];
+
+        // Rotate around Z (alpha)
+        let x1 = x * Math.cos(alpha) - y * Math.sin(alpha);
+        let y1 = x * Math.sin(alpha) + y * Math.cos(alpha);
+
+        // Rotate around X (beta)
+        let y2 = y1 * Math.cos(beta) - z * Math.sin(beta);
+        let z1 = y1 * Math.sin(beta) + z * Math.cos(beta);
+
+        // Rotate around Y (gamma)
+        let x2 = x1 * Math.cos(gamma) + z1 * Math.sin(gamma);
+        let z2 = -x1 * Math.sin(gamma) + z1 * Math.cos(gamma);
+
+        return [x2, y2, z2];
+      }
+
+      function project3DPoint(point, position) {
+        const fov = 60;
+        const scale = canvas.height / Math.tan((fov * Math.PI) / 180 / 2);
+
+        const x = point[0] - position.x;
+        const y = point[1] - position.y;
+        const z = point[2] - position.z + 500; // Offset to push objects in front of camera
+
+        // Don't render points behind the camera
+        if (z <= 0) return null;
+
+        const projectedX = (x * scale) / z + canvas.width / 2;
+        const projectedY = (y * scale) / z + canvas.height / 2;
+
+        return [projectedX, projectedY];
       }
 
       function initSensors() {
@@ -243,17 +283,12 @@
           if (!isTracking) return;
 
           const accel = event.accelerationIncludingGravity;
-          if (!accel) {
-            showStatus("No acceleration data available", true);
-            return;
-          }
+          if (!accel) return;
 
-          // Simple motion tracking
           const deltaX = (accel.x || 0) - lastAccel.x;
           const deltaY = (accel.y || 0) - lastAccel.y;
           const deltaZ = (accel.z || 0) - lastAccel.z;
 
-          // Update position with basic smoothing
           position.x += deltaX * 2;
           position.y += deltaY * 2;
           position.z += deltaZ * 2;
@@ -264,7 +299,6 @@
             z: accel.z || 0,
           };
 
-          // Add points periodically
           if (Math.random() < 0.1) {
             points.push({
               x: position.x + canvas.width / 2,
@@ -288,21 +322,21 @@
       function drawCube() {
         if (!arObject.placed) return;
 
-        // Transform cube vertices
-        const transformedVertices = cubeVertices.map((vertex) => {
-          // Rotate vertex
-          const rotated = rotatePoint(vertex, orientation);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          // Add world position offset
+        // Transform and project vertices
+        const transformedVertices = cubeVertices.map((vertex) => {
+          const rotated = rotatePoint(vertex, orientation);
           const worldPos = [
             rotated[0] + arObject.worldPos.x,
             rotated[1] + arObject.worldPos.y,
             rotated[2] + arObject.worldPos.z,
           ];
-
-          // Project to 2D
           return project3DPoint(worldPos, position);
         });
+
+        // Only draw if all vertices are in front of camera
+        if (transformedVertices.some((v) => v === null)) return;
 
         // Draw edges
         ctx.strokeStyle = "#00ff00";
@@ -315,35 +349,28 @@
           ctx.lineTo(transformedVertices[v2][0], transformedVertices[v2][1]);
           ctx.stroke();
         });
+
+        // Draw points for debugging
+        ctx.fillStyle = "rgba(255, 255, 0, 0.5)";
+        points.forEach((point) => {
+          const projected = project3DPoint(
+            [point.x, point.y, point.z],
+            position
+          );
+          if (projected) {
+            ctx.beginPath();
+            ctx.arc(projected[0], projected[1], 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
       }
 
       function updateDisplay() {
-        // Clear canvas
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Clear canvas overlay
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw points
-        ctx.fillStyle = "yellow";
-        points.forEach((point) => {
-          ctx.beginPath();
-          ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
-          ctx.fill();
-        });
-
-        // Draw AR cube
+        // Draw AR elements
         drawCube();
-
-        // Draw current position
-        ctx.fillStyle = "red";
-        ctx.beginPath();
-        ctx.arc(
-          position.x + canvas.width / 2,
-          position.y + canvas.height / 2,
-          5,
-          0,
-          Math.PI * 2
-        );
-        ctx.fill();
 
         // Update info display
         positionEl.textContent = `${Math.round(position.x)}, ${Math.round(
@@ -360,7 +387,6 @@
       startBtn.addEventListener("click", startTracking);
 
       placeBtn.addEventListener("click", () => {
-        // Place cube 2 meters in front of current position
         arObject.worldPos = {
           x: position.x + Math.sin((orientation.alpha * Math.PI) / 180) * 200,
           y: position.y + Math.sin((orientation.beta * Math.PI) / 180) * 200,
