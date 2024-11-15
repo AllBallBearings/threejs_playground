@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Simple Mobile SLAM</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+      #canvas {
+        width: 100vw;
+        height: 100vh;
+        touch-action: none;
+      }
+      #info {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+      .button {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 20px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+      #status {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div id="info">
+      Position: <span id="position">0, 0</span><br />
+      Orientation: <span id="orientation">0°</span><br />
+      Points: <span id="points">0</span>
+    </div>
+    <div id="status"></div>
+    <button class="button" id="startBtn">Start SLAM</button>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const positionEl = document.getElementById("position");
+      const orientationEl = document.getElementById("orientation");
+      const pointsEl = document.getElementById("points");
+      const startBtn = document.getElementById("startBtn");
+      const statusEl = document.getElementById("status");
+
+      function showStatus(message, isError = false) {
+        statusEl.style.display = "block";
+        statusEl.style.background = isError
+          ? "rgba(200,0,0,0.8)"
+          : "rgba(0,0,0,0.8)";
+        statusEl.textContent = message;
+        setTimeout(() => {
+          statusEl.style.display = "none";
+        }, 3000);
+      }
+
+      // Set canvas size
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      let isTracking = false;
+      let points = [];
+      let position = { x: 0, y: 0 };
+      let orientation = 0;
+      let lastAccel = { x: 0, y: 0 };
+
+      async function startTracking() {
+        // First check if we're on iOS
+        const isIOS =
+          /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+        try {
+          // Request motion permissions on iOS
+          if (isIOS) {
+            showStatus("Requesting motion permissions...");
+
+            if (typeof DeviceMotionEvent.requestPermission === "function") {
+              const motionPermission =
+                await DeviceMotionEvent.requestPermission();
+              if (motionPermission !== "granted") {
+                throw new Error("Motion permission denied");
+              }
+            }
+
+            if (
+              typeof DeviceOrientationEvent.requestPermission === "function"
+            ) {
+              const orientationPermission =
+                await DeviceOrientationEvent.requestPermission();
+              if (orientationPermission !== "granted") {
+                throw new Error("Orientation permission denied");
+              }
+            }
+          }
+
+          // Initialize sensors
+          initSensors();
+          showStatus("SLAM tracking started!");
+        } catch (error) {
+          console.error("Error starting SLAM:", error);
+          showStatus(
+            "Error: " + (error.message || "Failed to start sensors"),
+            true
+          );
+
+          if (error.message && error.message.includes("denied")) {
+            showStatus(
+              "Please enable motion & orientation access in Settings > Safari > Motion & Orientation Access",
+              true
+            );
+          }
+        }
+      }
+
+      function initSensors() {
+        isTracking = true;
+        startBtn.style.display = "none";
+
+        window.addEventListener("devicemotion", (event) => {
+          if (!isTracking) return;
+
+          const accel = event.accelerationIncludingGravity;
+          if (!accel) {
+            showStatus("No acceleration data available", true);
+            return;
+          }
+
+          // Simple motion tracking
+          const deltaX = (accel.x || 0) - lastAccel.x;
+          const deltaY = (accel.y || 0) - lastAccel.y;
+
+          // Update position with basic smoothing
+          position.x += deltaX * 2;
+          position.y += deltaY * 2;
+
+          lastAccel = { x: accel.x || 0, y: accel.y || 0 };
+
+          // Add points periodically
+          if (Math.random() < 0.1) {
+            points.push({
+              x: position.x + canvas.width / 2,
+              y: position.y + canvas.height / 2,
+            });
+          }
+
+          updateDisplay();
+        });
+
+        window.addEventListener("deviceorientation", (event) => {
+          if (!isTracking) return;
+          orientation = event.alpha || 0;
+          updateDisplay();
+        });
+      }
+
+      function updateDisplay() {
+        // Clear canvas
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw points
+        ctx.fillStyle = "yellow";
+        points.forEach((point) => {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Draw current position
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(
+          position.x + canvas.width / 2,
+          position.y + canvas.height / 2,
+          5,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+
+        // Draw orientation line
+        ctx.strokeStyle = "green";
+        ctx.beginPath();
+        ctx.moveTo(
+          position.x + canvas.width / 2,
+          position.y + canvas.height / 2
+        );
+        ctx.lineTo(
+          position.x +
+            canvas.width / 2 +
+            Math.cos((orientation * Math.PI) / 180) * 20,
+          position.y +
+            canvas.height / 2 +
+            Math.sin((orientation * Math.PI) / 180) * 20
+        );
+        ctx.stroke();
+
+        // Update info display
+        positionEl.textContent = `${Math.round(position.x)}, ${Math.round(
+          position.y
+        )}`;
+        orientationEl.textContent = `${Math.round(orientation)}°`;
+        pointsEl.textContent = points.length;
+      }
+
+      startBtn.addEventListener("click", startTracking);
+
+      // Initial render
+      updateDisplay();
+    </script>
+  </body>
+</html>
