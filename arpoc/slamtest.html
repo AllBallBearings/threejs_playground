@@ -3,53 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <title>AlvaAR Example</title>
-    <!-- Include AlvaAR and Three.js as modules -->
-    <script type="module">
-      import * as THREE from "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js";
-      import { AlvaAR } from "./helper_scripts/alva_ar.js";
-
-      document.addEventListener("DOMContentLoaded", async () => {
-        const video = document.createElement("video");
-        video.autoplay = true;
-        document.body.appendChild(video);
-
-        const canvas = document.createElement("canvas");
-        document.body.appendChild(canvas);
-        const ctx = canvas.getContext("2d");
-        const width = 640;
-        const height = 480;
-
-        canvas.width = width;
-        canvas.height = height;
-
-        try {
-          // Access the device camera
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width, height },
-          });
-          video.srcObject = stream;
-
-          // Initialize AlvaAR
-          const alva = await AlvaAR.Initialize(width, height);
-
-          // Process each video frame
-          const processFrame = () => {
-            ctx.drawImage(video, 0, 0, width, height);
-            const frame = ctx.getImageData(0, 0, width, height);
-            const cameraPose = alva.findCameraPose(frame);
-            // Use cameraPose for rendering 3D objects with Three.js
-            requestAnimationFrame(processFrame);
-          };
-
-          video.addEventListener("play", processFrame);
-        } catch (error) {
-          console.error(
-            "Error accessing the camera or initializing AlvaAR:",
-            error
-          );
-        }
-      });
-    </script>
   </head>
-  <body></body>
+  <body>
+    <video id="video" autoplay playsinline style="display: none"></video>
+    <canvas id="canvas"></canvas>
+    <script type="module" src="./slamtest/main.js"></script>
+  </body>
 </html>
