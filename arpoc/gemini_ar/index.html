@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>WebXR AR Cube</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      #ar-not-supported {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.3.1/ar.min.js"></script>
+  </head>
+  <body>
+    <div id="ar-not-supported">
+      <p>
+        WebXR not supported on this device. You may be able to see a simplified
+        view instead of AR
+      </p>
+      <button id="proceed-with-map">Proceed with map</button>
+    </div>
+    <script>
+      // Setup WebXR and AR logic here (JavaScript)
+      const arNotSupportedDiv = document.getElementById("ar-not-supported");
+      const proceedWithMapButton = document.getElementById("proceed-with-map");
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+      });
+
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const arToolkitSource = new THREEx.ArToolkitSource({
+        sourceType: "webcam",
+      });
+
+      arToolkitSource.init(function onReady() {
+        onResize();
+      });
+
+      const arToolkitContext = new THREEx.ArToolkitContext({
+        cameraParametersUrl:
+          THREEx.ArToolkitContext.baseURL + "camera_para.dat",
+        detectionMode: "mono",
+      });
+
+      arToolkitContext.init(() => {
+        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+      });
+
+      const markerRoot = new THREE.Group();
+      scene.add(markerRoot);
+
+      const arMarkerControls = new THREEx.ArMarkerControls(
+        arToolkitContext,
+        markerRoot,
+        {
+          type: "pattern",
+          patternUrl: THREEx.ArToolkitContext.baseURL + "patt.hiro",
+        }
+      );
+
+      // Cube Creation
+      const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+      const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+      const cube = new THREE.Mesh(geometry, material);
+      cube.position.set(0, 0, -1); // Set the location relative to the camera position
+      markerRoot.add(cube);
+
+      function onResize() {
+        arToolkitSource.onResizeElement();
+        arToolkitSource.copySizeTo(renderer.domElement);
+        if (arToolkitContext.arController !== null) {
+          arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
+        }
+      }
+
+      window.addEventListener("resize", function () {
+        onResize();
+      });
+      function animate() {
+        requestAnimationFrame(animate);
+        if (arToolkitSource.ready === false) return;
+
+        arToolkitContext.update(arToolkitSource.domElement);
+        renderer.render(scene, camera);
+      }
+
+      //check for WebXR Support
+      if (navigator.xr) {
+        console.log("WebXR is supported");
+        // Start AR session (request permission)
+        animate(); // Start rendering loop
+      } else {
+        console.log("WebXR not supported");
+        arNotSupportedDiv.style.display = "block"; // Show unsupported message
+
+        proceedWithMapButton.addEventListener("click", () => {
+          arNotSupportedDiv.style.display = "none";
+        });
+      }
+    </script>
+  </body>
+</html>
