@@ -122,10 +122,19 @@
         console.log(
           `new coords: latitude=${newCoordinates.latitude}, longitude=${newCoordinates.longitude}`
         );
-        locationCube.setAttribute(
-          "gps-entity-place",
-          `latitude: ${newCoordinates.latitude}; longitude: ${newCoordinates.longitude};`
-        );
+
+        if (
+          newCoordinates &&
+          typeof newCoordinates.latitude === "number" &&
+          typeof newCoordinates.longitude === "number"
+        ) {
+          locationCube.setAttribute(
+            "gps-entity-place",
+            `latitude: ${newCoordinates.latitude}; longitude: ${newCoordinates.longitude};`
+          );
+        } else {
+          console.error("Invalid new coordinates:", newCoordinates);
+        }
       }
       function getLocation() {
         if (navigator.geolocation) {
