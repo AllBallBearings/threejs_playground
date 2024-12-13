@@ -6,7 +6,11 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>WebXR AR Cube</title>
+    <title>Location Based AR Example</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-location-component@1.1.3/dist/aframe-location-component.min.js"></script>
     <style>
       body {
         margin: 0;
@@ -24,8 +28,6 @@
         text-align: center;
       }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.2.2/aframe-ar.min.js"></script>
   </head>
   <body>
     <div id="ar-not-supported">
@@ -35,95 +37,120 @@
       </p>
       <button id="proceed-with-map">Proceed with map</button>
     </div>
+
+    <a-scene
+      embedded
+      arjs="trackingMethod: best; debugUIEnabled: false; sourceType: webcam; patternRatio: 0.8; sourceWidth: 640; sourceHeight: 480; displayWidth: 1000; displayHeight: 1000;"
+      id="ar-scene"
+      gps-camera=""
+    >
+      <a-entity
+        look-at="#camera"
+        id="location-based-cube"
+        geometry="primitive: box"
+        material="color: green"
+        scale="1 1 1"
+      >
+      </a-entity>
+      <a-entity camera id="camera"></a-entity>
+    </a-scene>
+
     <script>
-      // Setup WebXR and AR logic here (JavaScript)
       const arNotSupportedDiv = document.getElementById("ar-not-supported");
       const proceedWithMapButton = document.getElementById("proceed-with-map");
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-      );
-
-      const renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true,
-      });
-
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
-
-      const arToolkitSource = new THREEx.ArToolkitSource({
-        sourceType: "webcam",
-      });
-
-      arToolkitSource.init(function onReady() {
-        onResize();
-      });
-
-      const arToolkitContext = new THREEx.ArToolkitContext({
-        cameraParametersUrl:
-          THREEx.ArToolkitContext.baseURL + "camera_para.dat",
-        detectionMode: "mono",
-      });
-
-      arToolkitContext.init(() => {
-        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-      });
-
-      const markerRoot = new THREE.Group();
-      scene.add(markerRoot);
-
-      const arMarkerControls = new THREEx.ArMarkerControls(
-        arToolkitContext,
-        markerRoot,
-        {
-          type: "pattern",
-          patternUrl: THREEx.ArToolkitContext.baseURL + "patt.hiro",
-        }
-      );
-
-      // Cube Creation
-      const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-      const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-      const cube = new THREE.Mesh(geometry, material);
-      cube.position.set(0, 0, -1); // Set the location relative to the camera position
-      markerRoot.add(cube);
-
-      function onResize() {
-        arToolkitSource.onResizeElement();
-        arToolkitSource.copySizeTo(renderer.domElement);
-        if (arToolkitContext.arController !== null) {
-          arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
-        }
-      }
-
-      window.addEventListener("resize", function () {
-        onResize();
-      });
-      function animate() {
-        requestAnimationFrame(animate);
-        if (arToolkitSource.ready === false) return;
-
-        arToolkitContext.update(arToolkitSource.domElement);
-        renderer.render(scene, camera);
-      }
-
-      //check for WebXR Support
+      const locationCube = document.getElementById("location-based-cube");
+      const EARTH_RADIUS_METERS = 6371000;
       if (navigator.xr) {
         console.log("WebXR is supported");
-        // Start AR session (request permission)
-        animate(); // Start rendering loop
       } else {
         console.log("WebXR not supported");
         arNotSupportedDiv.style.display = "block"; // Show unsupported message
-
         proceedWithMapButton.addEventListener("click", () => {
           arNotSupportedDiv.style.display = "none";
         });
       }
+      function degreesToRadians(degrees) {
+        return degrees * (Math.PI / 180);
+      }
+
+      function getNewCoordinates(
+        latitude,
+        longitude,
+        distanceMeters,
+        bearingDegrees
+      ) {
+        const bearingRadians = degreesToRadians(bearingDegrees);
+        const latRadians = degreesToRadians(latitude);
+        const lonRadians = degreesToRadians(longitude);
+
+        const angularDistance = distanceMeters / EARTH_RADIUS_METERS;
+
+        const newLatRadians = Math.asin(
+          Math.sin(latRadians) * Math.cos(angularDistance) +
+            Math.cos(latRadians) *
+              Math.sin(angularDistance) *
+              Math.cos(bearingRadians)
+        );
+
+        const newLonRadians =
+          lonRadians +
+          Math.atan2(
+            Math.sin(bearingRadians) *
+              Math.sin(angularDistance) *
+              Math.cos(latRadians),
+            Math.cos(angularDistance) -
+              Math.sin(latRadians) * Math.sin(newLatRadians)
+          );
+        return {
+          latitude: newLatRadians * (180 / Math.PI),
+          longitude: newLonRadians * (180 / Math.PI),
+        };
+      }
+      function setLocationBasedObject(latitude, longitude) {
+        const distance = 1.524; // 5 feet in meters
+        const randomAngle = Math.random() * 360;
+        const newCoordinates = getNewCoordinates(
+          latitude,
+          longitude,
+          distance,
+          randomAngle
+        );
+
+        console.log(
+          `initial coords: latitude=${latitude}, longitude=${longitude}`
+        );
+        console.log(
+          `new coords: latitude=${newCoordinates.latitude}, longitude=${newCoordinates.longitude}`
+        );
+        locationCube.setAttribute(
+          "gps-entity-place",
+          `latitude: ${newCoordinates.latitude}; longitude: ${newCoordinates.longitude};`
+        );
+      }
+      function getLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              setLocationBasedObject(
+                position.coords.latitude,
+                position.coords.longitude
+              );
+            },
+            (error) => {
+              console.error("Error getting location:", error);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            }
+          );
+        } else {
+          console.log("Geolocation is not supported by this browser.");
+        }
+      }
+
+      getLocation();
     </script>
   </body>
 </html>
